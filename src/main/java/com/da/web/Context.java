@@ -1,6 +1,7 @@
 package com.da.web;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -87,10 +88,10 @@ public class Context {
                 buffer.flip();
             }
             if (Util.isNotBlank(requestMsg.toString())) {
-                //            用换行隔开每一条数据
+//            用换行隔开每一条数据
                 String[] messages = requestMsg.toString().split("\n");
                 if (Util.isArrayNotNull(messages)) {
-                    //                解析第一行的信息 请求方法 请求路径 http协议版本
+//                解析第一行的信息 请求方法 请求路径 http协议版本
                     String[] info = messages[0].split(" ");
                     if (Util.isArrayNotNull(info) && info.length == 3) {
                         this.method = info[0];
@@ -107,22 +108,11 @@ public class Context {
                             String[] tempParams = beforeParams.split("&");
                             if (Util.isArrayNotNull(tempParams)) {
                                 for (String param : tempParams) {
-                                    if (param.contains("=")) {
-                                        String[] res = param.split("=");
-                                        if (Util.isArrayNotNull(res) && res.length == 2) {
-                                            this.params.put(res[0], res[1]);
-                                        }
-                                    }
+                                    handlerParamsToMap(param);
                                 }
                             }
                         } else {
-//                            有没有用=分割开
-                            if (beforeParams.contains("=")) {
-                                String[] resParams = beforeParams.split("=");
-                                if (Util.isArrayNotNull(resParams) && resParams.length == 2) {
-                                    this.params.put(resParams[0], resParams[1]);
-                                }
-                            }
+                            handlerParamsToMap(beforeParams);
                         }
                         this.HTTP_VERSION = info[2];
                     }
@@ -133,13 +123,24 @@ public class Context {
         }
     }
 
+    //    因为中文会有编码的问题所以要处理一下
+    private void handlerParamsToMap(String Params) throws UnsupportedEncodingException {
+        if (Params.contains("=")) {
+            String[] resParams = Params.split("=");
+            if (Util.isArrayNotNull(resParams) && resParams.length == 2) {
+                String decode = URLDecoder.decode(resParams[1], "utf-8");
+                this.params.put(resParams[0], decode);
+            }
+        }
+    }
+
     //    发送信息
     public void send(String headers, int code, String data) {
         try {
             channel.write(ByteBuffer.wrap((HTTP_VERSION + code + "\n" +
                     headers + "\n\n" + data).getBytes(StandardCharsets.UTF_8)));
             channel.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
