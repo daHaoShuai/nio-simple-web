@@ -2,8 +2,6 @@ package com.da;
 
 import com.da.web.DApp;
 
-import java.util.Map;
-
 /**
  * Author Da
  * Description: <br/>
@@ -14,17 +12,13 @@ import java.util.Map;
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-05-31
- * Time: 21:00
+ * Time: 21:27
  */
 public class App {
     public static void main(String[] args) {
         DApp app = new DApp();
         app.use("/", ctx -> ctx.send("hello world"));
         app.listen();
-        app.use("/a", ctx -> {
-            Map<String, String> params = ctx.getParams();
-            String name = params.get("name");
-            ctx.send(name);
-        });
+//        app.shutdown();
     }
 }

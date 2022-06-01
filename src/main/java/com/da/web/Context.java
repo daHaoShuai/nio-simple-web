@@ -48,8 +48,8 @@ public class Context {
     private String method;
     //    请求参数
     private final Map<String, String> params = new HashMap<>();
-    //    http协议版本
-    private String HTTP_VERSION;
+    //    http协议版本,默认是 HTTP/1.1
+    private String HTTP_VERSION = "HTTP/1.1";
     //    读写通道
     private final SocketChannel channel;
 
@@ -114,7 +114,8 @@ public class Context {
                         } else {
                             handlerParamsToMap(beforeParams);
                         }
-                        this.HTTP_VERSION = info[2];
+//                        因为解析出来后面会有个\r所以要处理一下
+                        this.HTTP_VERSION = info[2].trim();
                     }
                 }
             }
@@ -137,8 +138,9 @@ public class Context {
     //    发送信息
     public void send(String headers, int code, String data) {
         try {
-            channel.write(ByteBuffer.wrap((HTTP_VERSION + code + "\n" +
-                    headers + "\n\n" + data).getBytes(StandardCharsets.UTF_8)));
+//            拼接响应字符串
+            String result = this.HTTP_VERSION + " " + code + "\n" + headers + "\n\n" + data;
+            channel.write(ByteBuffer.wrap(result.getBytes(StandardCharsets.UTF_8)));
             channel.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,7 +164,7 @@ public class Context {
 
     //    发送指定code的网页信息
     public void sendHtml(String msg, int code) {
-        send(CONTENT_TYPE_TEXT, code, msg);
+        send(CONTENT_TYPE_HTML, code, msg);
     }
 
     //    发送json信息

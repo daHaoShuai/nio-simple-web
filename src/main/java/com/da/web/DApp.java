@@ -31,12 +31,15 @@ public class DApp {
     private final Map<String, Handler> routes = new HashMap<>();
     //    服务初始化时间
     private final long startTime;
+    //    是否开启服务器
+    private boolean isStart = false;
 
     public DApp() {
+//        记录初始化时间
         this.startTime = System.currentTimeMillis();
     }
 
-    //    get请求
+    //    请求注册处理
     public void use(String path, Handler handler) {
         routes.put(path, handler);
     }
@@ -47,70 +50,107 @@ public class DApp {
         listen(8080);
     }
 
-    /**
-     * 启动监听
-     *
-     * @param port 端口
-     */
+    //    启动监听
     public void listen(int port) {
+//         不知道有没有用,反正加上也没事
+        System.setProperty("java.awt.headless", Boolean.toString(true));
 //        用新的线程开启监听,不会阻塞后面执行的代码
-        new Thread(() -> {
-            try {
-//            选择器
-                Selector selector = Selector.open();
-//            服务端通道
-                ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        Thread serverThread = new Thread(() -> start0(port));
+//        把isStart设置为true
+        isStart = !serverThread.isAlive();
+//        开启新的线程
+        serverThread.start();
+//        jvm关闭的时候关闭循环和执行的线程,可以不用写这段,写了也无所谓
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            shutdown();
+            serverThread.stop();
+        }));
+    }
+
+    //    启动服务器
+    private void start0(int port) {
+        try {
+//            初始化服务器
+            initServer(port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //    初始化服务器
+    private void initServer(int port) throws IOException {
+//            打开选择器
+        Selector selector = Selector.open();
+//            打开服务端通道
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
 //            绑定端口
-                serverSocketChannel.socket().bind(new InetSocketAddress(port));
+        serverSocketChannel.socket().bind(new InetSocketAddress(port));
 //            设置为非阻塞
-                serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.configureBlocking(false);
 //            注册到选择器,等待连接
-                serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-                printInitMessage(port, startTime);
-                while (true) {
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+//            打印初始化信息
+        printInitMessage(port, startTime);
+//        启动循环监听
+        startServer(selector, serverSocketChannel);
+    }
+
+    //    启动服务器
+    private void startServer(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
+//        循环监听
+        while (isStart) {
 //                有连接进来
-                    if (selector.select() > 0) {
+            if (selector.select() > 0) {
 //                    关注事件的集合
-                        Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                Set<SelectionKey> selectionKeys = selector.selectedKeys();
 //                    迭代器
-                        Iterator<SelectionKey> iterator = selectionKeys.iterator();
-                        while (iterator.hasNext()) {
-//                        获取SelectionKey
-                            SelectionKey selectionKey = iterator.next();
-//                        连接事件
-                            if (selectionKey.isAcceptable()) {
-//                            获取连接通道
-                                SocketChannel accept = serverSocketChannel.accept();
-//                            设置为非阻塞
-                                accept.configureBlocking(false);
-//                            注册为读取事件
-                                accept.register(selector, SelectionKey.OP_READ);
-                            }
-//                        读取事件
-                            else if (selectionKey.isReadable()) {
-                                SocketChannel channel = (SocketChannel) selectionKey.channel();
-//                            创建当前通道的上下文对象
-                                Context context = new Context(channel);
-                                String url = context.getUrl();
-//                            判断路由表中有没有对应的路由
-                                if (routes.containsKey(url)) {
-//                                执行回调
-                                    routes.get(url).callback(context);
-                                }
-//                            找不到就是404
-                                else {
-                                    context.sendHtml("<h1 style=\"color: red;text-align: center;\">404 not found</h1><hr/>", 404);
-                                }
-                            }
-//                        删除掉当前的key
-                            iterator.remove();
-                        }
-                    }
+                Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                while (iterator.hasNext()) {
+//                    处理集合中的SelectionKey
+                    handlerKey(selector, iterator, serverSocketChannel);
+//                    删除掉当前处理完成的key
+                    iterator.remove();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-        }).start();
+        }
+    }
+
+    //    处理集合中的SelectionKey
+    private void handlerKey(Selector selector, Iterator<SelectionKey> iterator, ServerSocketChannel serverSocketChannel) throws IOException {
+//       获取SelectionKey
+        SelectionKey selectionKey = iterator.next();
+//       连接事件,需要把当前的key注册为读取事件(浏览器获取服务器的响应)
+        if (selectionKey.isAcceptable()) {
+//           获取连接通道
+            SocketChannel accept = serverSocketChannel.accept();
+//           设置为非阻塞
+            accept.configureBlocking(false);
+//           注册为读取事件
+            accept.register(selector, SelectionKey.OP_READ);
+        }
+//       读取事件,响应内容到浏览器
+        else if (selectionKey.isReadable()) {
+//            获取写内容的通道
+            SocketChannel channel = (SocketChannel) selectionKey.channel();
+//           创建当前通道的上下文对象,用于解析请求信息和响应内容到浏览器
+            Context context = new Context(channel);
+//            获取请求的url
+            String url = context.getUrl();
+//           判断路由表中有没有对应的路由
+            if (routes.containsKey(url)) {
+//              执行回调
+                routes.get(url).callback(context);
+            }
+//              找不到就是404
+            else {
+                context.sendHtml("<h1 style=\"color: red;text-align: center;\">404 not found</h1><hr/>", Context.NOTFOUND);
+            }
+        }
+    }
+
+    //    关闭服务器
+    public void shutdown() {
+        isStart = false;
     }
 
     //    打印初始化信息
