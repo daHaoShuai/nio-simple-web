@@ -13,19 +13,22 @@ import com.da.web.core.annotations.Inject;
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-06-01
- * Time: 16:33
+ * Time: 19:02
  */
 @Component("user")
 public class User {
-
     @Inject("杰哥")
     private String name;
-
-    @Inject("20")
-    private int age;
-
     @Inject("dog")
     private Dog dog;
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "name='" + name + '\'' +
+                ", dog=" + dog +
+                '}';
+    }
 
     public String getName() {
         return name;
@@ -35,20 +38,11 @@ public class User {
         this.name = name;
     }
 
-    public int getAge() {
-        return age;
+    public Dog getDog() {
+        return dog;
     }
 
-    public void setAge(int age) {
-        this.age = age;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "name='" + name + '\'' +
-                ", age=" + age +
-                ", dog=" + dog +
-                '}';
+    public void setDog(Dog dog) {
+        this.dog = dog;
     }
 }

@@ -15,7 +15,7 @@ import com.da.web.core.annotations.Path;
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-06-01
- * Time: 15:17
+ * Time: 19:03
  */
 @Path("/hello")
 public class IndexController implements Handler {
@@ -23,10 +23,16 @@ public class IndexController implements Handler {
     @Inject("user")
     private User user;
 
+    @Inject("20")
+    private int age;
+
     private String name;
+
+    private int sex;
 
     @Override
     public void callback(Context ctx) {
-        ctx.send("hello " + name + " user " + user);
+        ctx.send(user.toString() + " name = "
+                + name + " age = " + age + " sex = " + sex);
     }
 }

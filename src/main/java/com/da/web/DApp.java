@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Author Da
@@ -87,11 +88,11 @@ public class DApp {
 //        当前属性的类型
         String fieldType = field.getType().getName();
 //        获取基本类型的转换器
-        Util.Conv<?> conv = Util.getTypeConv(fieldType);
+        Function<String, Object> conv = Util.getTypeConv(fieldType);
 //        不为空的时候就是基本数据类型和String
         if (null != conv) {
 //            转换成对应的数据类型注入
-            Object o = conv.exec(beanNameOrValue);
+            Object o = conv.apply(beanNameOrValue);
             field.setAccessible(true);
             try {
                 field.set(bean, o);
@@ -285,9 +286,25 @@ public class DApp {
         for (Field field : fields) {
 //            判断有没有Inject注解
             if (field.isAnnotationPresent(Inject.class)) {
-                String beanName = field.getAnnotation(Inject.class).value();
-                if (beans.containsKey(beanName)) {
-                    Object initBean = beans.get(beanName);
+                String beanNameOrValue = field.getAnnotation(Inject.class).value();
+//                获取转换器
+                Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
+//                注入基本类型和String
+                if (null != conv) {
+//                    转换成对应的值
+                    Object value = conv.apply(beanNameOrValue);
+                    field.setAccessible(true);
+                    try {
+                        field.set(bean, value);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } finally {
+                        field.setAccessible(false);
+                    }
+                }
+//                注入bean池中的类
+                else if (beans.containsKey(beanNameOrValue)) {
+                    Object initBean = beans.get(beanNameOrValue);
                     field.setAccessible(true);
                     try {
                         field.set(bean, initBean);
@@ -297,16 +314,25 @@ public class DApp {
                         field.setAccessible(false);
                     }
                 }
-            } else if (params.containsKey(field.getName())) {
+            }
+//            没有Inject注解就尝试注入请求的参数
+            else if (params.containsKey(field.getName())) {
 //                获取请求参数的值
                 String value = params.get(field.getName());
-                field.setAccessible(true);
-                try {
-                    field.set(bean, value);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } finally {
-                    field.setAccessible(false);
+//                获取转换器
+                Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
+//                请求只注入基本参数和String
+                if (null != conv) {
+//                    转换类型
+                    Object o = conv.apply(value);
+                    field.setAccessible(true);
+                    try {
+                        field.set(bean, o);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } finally {
+                        field.setAccessible(false);
+                    }
                 }
             }
         }

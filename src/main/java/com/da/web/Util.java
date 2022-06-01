@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -31,109 +32,40 @@ public class Util {
     //    创建工具类的实例
     private static final Util util = new Util();
     //    保存类型转换工具的类
-    private static final Map<String, Conv<?>> typeMap = new HashMap<>();
+    private static final Map<String, Function<String, Object>> typeMap = new HashMap<>();
 
     //    私有构造
     private Util() {
     }
 
     //    获取对应基本类型的转换器
-    public static Conv<?> getTypeConv(String type) {
-        typeMap.put("java.lang.String", new StringConv());
-        typeMap.put("byte", new ByteConv());
-        typeMap.put("java.lang.Byte", new ByteConv());
-        typeMap.put("boolean", new BooleanConv());
-        typeMap.put("java.lang.Boolean", new BooleanConv());
-        typeMap.put("short", new ShortConv());
-        typeMap.put("java.lang.Short", new ShortConv());
-        typeMap.put("char", new CharConv());
-        typeMap.put("java.lang.Character", new CharConv());
-        typeMap.put("int", new IntegerConv());
-        typeMap.put("java.lang.Integer", new IntegerConv());
-        typeMap.put("long", new LongConv());
-        typeMap.put("java.lang.Long", new LongConv());
-        typeMap.put("float", new FloatConv());
-        typeMap.put("java.lang.Float", new FloatConv());
-        typeMap.put("double", new DoubleConv());
-        typeMap.put("java.lang.Double", new DoubleConv());
+    public static Function<String, Object> getTypeConv(String type) {
+        if (typeMap.size() == 0) {
+//            填充数据到map中去
+            initConvMap();
+        }
         return typeMap.get(type);
     }
 
-    //    类型转换接口
-    interface Conv<T> {
-        T exec(String str);
-    }
-
-    public static class StringConv implements Conv<String> {
-
-        @Override
-        public String exec(String str) {
-            return str;
-        }
-    }
-
-    public static class ByteConv implements Conv<Byte> {
-
-        @Override
-        public Byte exec(String str) {
-            return Byte.valueOf(str);
-        }
-    }
-
-    public static class BooleanConv implements Conv<Boolean> {
-
-        @Override
-        public Boolean exec(String str) {
-            return Boolean.valueOf(str);
-        }
-    }
-
-    public static class ShortConv implements Conv<Short> {
-
-        @Override
-        public Short exec(String str) {
-            return Short.valueOf(str);
-        }
-    }
-
-    public static class CharConv implements Conv<Character> {
-
-        @Override
-        public Character exec(String str) {
-            return str.charAt(0);
-        }
-    }
-
-    public static class IntegerConv implements Conv<Integer> {
-
-        @Override
-        public Integer exec(String str) {
-            return Integer.valueOf(str);
-        }
-    }
-
-    public static class LongConv implements Conv<Long> {
-
-        @Override
-        public Long exec(String str) {
-            return Long.valueOf(str);
-        }
-    }
-
-    public static class FloatConv implements Conv<Float> {
-
-        @Override
-        public Float exec(String str) {
-            return Float.valueOf(str);
-        }
-    }
-
-    public static class DoubleConv implements Conv<Double> {
-
-        @Override
-        public Double exec(String str) {
-            return Double.valueOf(str);
-        }
+    //    填充类型转换器
+    private static void initConvMap() {
+        typeMap.put("java.lang.String", str -> str);
+        typeMap.put("byte", Byte::valueOf);
+        typeMap.put("java.lang.Byte", Byte::valueOf);
+        typeMap.put("boolean", Boolean::valueOf);
+        typeMap.put("java.lang.Boolean", Boolean::valueOf);
+        typeMap.put("short", Short::valueOf);
+        typeMap.put("java.lang.Short", Short::valueOf);
+        typeMap.put("char", str -> str.charAt(0));
+        typeMap.put("java.lang.Character", str -> str.charAt(0));
+        typeMap.put("int", Integer::valueOf);
+        typeMap.put("java.lang.Integer", Integer::valueOf);
+        typeMap.put("long", Long::valueOf);
+        typeMap.put("java.lang.Long", Long::valueOf);
+        typeMap.put("float", Float::valueOf);
+        typeMap.put("java.lang.Float", Float::valueOf);
+        typeMap.put("double", Double::valueOf);
+        typeMap.put("java.lang.Double", Double::valueOf);
     }
 
     //    字符串不为空
