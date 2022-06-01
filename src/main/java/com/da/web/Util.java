@@ -38,6 +38,11 @@ public class Util {
     private Util() {
     }
 
+    //    获取工具类实例,基本不会用上
+    public Util getInstance() {
+        return util;
+    }
+
     //    获取对应基本类型的转换器
     public static Function<String, Object> getTypeConv(String type) {
         if (typeMap.size() == 0) {

@@ -26,6 +26,7 @@ public class IndexController implements Handler {
     @Inject("20")
     private int age;
 
+    // 如果没有@Inject注解会尝试从请求参数中注入值
     private String name;
 
     private int sex;

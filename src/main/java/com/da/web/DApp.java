@@ -16,7 +16,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -91,12 +90,12 @@ public class DApp {
         Function<String, Object> conv = Util.getTypeConv(fieldType);
 //        不为空的时候就是基本数据类型和String
         if (null != conv) {
-//            转换成对应的数据类型注入
-            Object o = conv.apply(beanNameOrValue);
             field.setAccessible(true);
             try {
+//              转换成对应的数据类型注入
+                Object o = conv.apply(beanNameOrValue);
                 field.set(bean, o);
-            } catch (IllegalAccessException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 field.setAccessible(false);
@@ -272,7 +271,7 @@ public class DApp {
             }
 //              找不到就是404
             else {
-                context.sendHtml("<h1 style=\"color: red;text-align: center;\">404 not found</h1><hr/>", Context.NOTFOUND);
+                context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", Context.NOTFOUND);
             }
         }
     }
@@ -291,12 +290,12 @@ public class DApp {
                 Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
 //                注入基本类型和String
                 if (null != conv) {
-//                    转换成对应的值
-                    Object value = conv.apply(beanNameOrValue);
                     field.setAccessible(true);
                     try {
+//                      转换成对应的值
+                        Object value = conv.apply(beanNameOrValue);
                         field.set(bean, value);
-                    } catch (IllegalAccessException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
                         field.setAccessible(false);
@@ -321,14 +320,14 @@ public class DApp {
                 String value = params.get(field.getName());
 //                获取转换器
                 Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
-//                请求只注入基本参数和String
+//                尝试注入基本类型
                 if (null != conv) {
-//                    转换类型
-                    Object o = conv.apply(value);
                     field.setAccessible(true);
                     try {
+//                      转换类型,可能会转换出错,所以要处理
+                        Object o = conv.apply(value);
                         field.set(bean, o);
-                    } catch (IllegalAccessException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
                         field.setAccessible(false);
@@ -363,4 +362,16 @@ public class DApp {
         System.out.println("\t启动总耗时: " + (System.currentTimeMillis() - startTime) + "ms\n");
     }
 
+    //    获取扫描出来的实例化好的bean
+    public Object getBean(String beanName) {
+        return beans.get(beanName);
+    }
+
+    //    获取扫描出来的实例化好的bean,并且转好类型
+    public <T> T getBean(String beanName, Class<T> t) {
+        if (null != getBean(beanName)) {
+            return (T) getBean(beanName);
+        }
+        return null;
+    }
 }

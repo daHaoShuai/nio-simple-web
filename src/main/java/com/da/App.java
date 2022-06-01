@@ -1,6 +1,10 @@
 package com.da;
 
+import com.da.controller.Dog;
+import com.da.controller.IndexController;
 import com.da.web.DApp;
+import com.da.web.core.Context;
+import com.da.web.core.annotations.Component;
 
 /**
  * Author Da
@@ -18,6 +22,12 @@ public class App {
     public static void main(String[] args) {
         DApp app = new DApp(App.class);
         app.use("/", ctx -> ctx.sendHtml("<h1>hello world</h1>"));
+//        @Component注册的bean
+        Dog dog = app.getBean("dog", Dog.class);
+        System.out.println(dog);
+//        @path注解用路径表示beanName
+        IndexController bean = (IndexController) app.getBean("/hello");
+        System.out.println(bean);
         app.listen();
     }
 }
