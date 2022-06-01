@@ -1,4 +1,6 @@
-package com.da.web;
+package com.da.web.core;
+
+import com.da.web.Util;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;

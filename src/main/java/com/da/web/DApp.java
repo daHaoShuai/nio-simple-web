@@ -1,7 +1,14 @@
 package com.da.web;
 
+import com.da.web.core.Context;
+import com.da.web.core.Handler;
+import com.da.web.core.annotations.Component;
+import com.da.web.core.annotations.Inject;
+import com.da.web.core.annotations.Path;
+
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -9,6 +16,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +39,8 @@ import java.util.Set;
 public class DApp {
     //    路由表
     private final Map<String, Handler> routes = new HashMap<>();
+    //    保存扫描出来的bean
+    private final Map<String, Object> beans = new HashMap<>();
     //    服务初始化时间
     private final long startTime;
     //    是否开启服务器
@@ -45,10 +55,67 @@ public class DApp {
     public DApp(Class<?> clz) {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
-//        扫描注册
+//        扫描注册路由和bean组件
         initScan(clz);
+//        给component的bean注入属性
+        injectValueToComponentBean();
     }
 
+    //    给bean注入属性
+    private void injectValueToComponentBean() {
+        beans.forEach((k, v) -> {
+//            以/开头的
+            if (!k.startsWith("/")) {
+//                并且没有实现Handler接口的就是Component注解标记的类
+                if (!Util.isInterface(v.getClass(), Handler.class)) {
+                    Class<?> clz = v.getClass();
+                    for (Field field : clz.getDeclaredFields()) {
+                        if (field.isAnnotationPresent(Inject.class)) {
+//                            是beanName或者是值
+                            String beanNameOrValue = field.getAnnotation(Inject.class).value();
+//                            给属性注入值
+                            InjectBaseTypeValue(field, beanNameOrValue, v);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    //    给属性注入值
+    private void InjectBaseTypeValue(Field field, String beanNameOrValue, Object bean) {
+//        当前属性的类型
+        String fieldType = field.getType().getName();
+//        获取基本类型的转换器
+        Util.Conv<?> conv = Util.getTypeConv(fieldType);
+//        不为空的时候就是基本数据类型和String
+        if (null != conv) {
+//            转换成对应的数据类型注入
+            Object o = conv.exec(beanNameOrValue);
+            field.setAccessible(true);
+            try {
+                field.set(bean, o);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } finally {
+                field.setAccessible(false);
+            }
+        }
+//        注入bean
+        else if (beans.containsKey(beanNameOrValue)) {
+            Object o = beans.get(beanNameOrValue);
+            field.setAccessible(true);
+            try {
+                field.set(bean, o);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } finally {
+                field.setAccessible(true);
+            }
+        }
+    }
+
+    //    初始化扫描注册路由
     private void initScan(Class<?> clz) {
 //        配置类的包名
         String packageName = clz.getPackage().getName();
@@ -71,17 +138,22 @@ public class DApp {
         }
     }
 
-    //    处理符合的class,注册到路由中去
+    //    处理符合的class,丢到bean池中去
     private void handlerClassName(String className) {
         Class<?> clz = Util.loadClass(className);
         if (null != clz) {
-            if (Util.isAnnotation(clz, Path.class)) {
-                String path = clz.getAnnotation(Path.class).value();
-//                判断当前类有没有实现Handler接口,实现了就注册到路由表中
-                if (Util.isInterface(clz, Handler.class)) {
-                    Object o = Util.newInstance(clz);
-                    routes.put(path, (Handler) o);
-                }
+            String beanName = "";
+            Object bean = null;
+            if (Util.isAnnotation(clz, Component.class)) {
+                beanName = clz.getAnnotation(Component.class).value();
+                bean = Util.newInstance(clz);
+            } else if (Util.isAnnotation(clz, Path.class)) {
+                beanName = clz.getAnnotation(Path.class).value();
+                bean = Util.newInstance(clz);
+            }
+//               符合的实例化丢到bean池中
+            if (Util.isNotBlank(beanName) && null != bean) {
+                beans.put(beanName, bean);
             }
         }
     }
@@ -188,9 +260,54 @@ public class DApp {
 //              执行回调
                 routes.get(url).callback(context);
             }
+//            在bean池中看看有没有对应的bean
+            else if (beans.containsKey(url)) {
+//                获取对应的bean,注入属性
+                Object bean = beans.get(url);
+//                动态注入属性
+                injectValueToPathBean(bean, context);
+//                执行回调
+                ((Handler) bean).callback(context);
+            }
 //              找不到就是404
             else {
                 context.sendHtml("<h1 style=\"color: red;text-align: center;\">404 not found</h1><hr/>", Context.NOTFOUND);
+            }
+        }
+    }
+
+    //    注入PathBean的属性
+    private void injectValueToPathBean(Object bean, Context context) {
+//        当前的请求参数
+        Map<String, String> params = context.getParams();
+        Class<?> clz = bean.getClass();
+        Field[] fields = clz.getDeclaredFields();
+        for (Field field : fields) {
+//            判断有没有Inject注解
+            if (field.isAnnotationPresent(Inject.class)) {
+                String beanName = field.getAnnotation(Inject.class).value();
+                if (beans.containsKey(beanName)) {
+                    Object initBean = beans.get(beanName);
+                    field.setAccessible(true);
+                    try {
+                        field.set(bean, initBean);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } finally {
+                        field.setAccessible(false);
+                    }
+                }
+            } else if (params.containsKey(field.getName())) {
+//                获取请求参数的值
+                String value = params.get(field.getName());
+                field.setAccessible(true);
+                try {
+                    field.set(bean, value);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } finally {
+                    field.setAccessible(false);
+                }
             }
         }
     }

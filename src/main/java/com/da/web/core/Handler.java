@@ -1,4 +1,4 @@
-package com.da.web;
+package com.da.web.core;
 
 /**
  * Author Da

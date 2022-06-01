@@ -1,5 +1,6 @@
 package com.da.web;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -8,7 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -27,9 +30,110 @@ import java.util.stream.Collectors;
 public class Util {
     //    创建工具类的实例
     private static final Util util = new Util();
+    //    保存类型转换工具的类
+    private static final Map<String, Conv<?>> typeMap = new HashMap<>();
 
     //    私有构造
     private Util() {
+    }
+
+    //    获取对应基本类型的转换器
+    public static Conv<?> getTypeConv(String type) {
+        typeMap.put("java.lang.String", new StringConv());
+        typeMap.put("byte", new ByteConv());
+        typeMap.put("java.lang.Byte", new ByteConv());
+        typeMap.put("boolean", new BooleanConv());
+        typeMap.put("java.lang.Boolean", new BooleanConv());
+        typeMap.put("short", new ShortConv());
+        typeMap.put("java.lang.Short", new ShortConv());
+        typeMap.put("char", new CharConv());
+        typeMap.put("java.lang.Character", new CharConv());
+        typeMap.put("int", new IntegerConv());
+        typeMap.put("java.lang.Integer", new IntegerConv());
+        typeMap.put("long", new LongConv());
+        typeMap.put("java.lang.Long", new LongConv());
+        typeMap.put("float", new FloatConv());
+        typeMap.put("java.lang.Float", new FloatConv());
+        typeMap.put("double", new DoubleConv());
+        typeMap.put("java.lang.Double", new DoubleConv());
+        return typeMap.get(type);
+    }
+
+    //    类型转换接口
+    interface Conv<T> {
+        T exec(String str);
+    }
+
+    public static class StringConv implements Conv<String> {
+
+        @Override
+        public String exec(String str) {
+            return str;
+        }
+    }
+
+    public static class ByteConv implements Conv<Byte> {
+
+        @Override
+        public Byte exec(String str) {
+            return Byte.valueOf(str);
+        }
+    }
+
+    public static class BooleanConv implements Conv<Boolean> {
+
+        @Override
+        public Boolean exec(String str) {
+            return Boolean.valueOf(str);
+        }
+    }
+
+    public static class ShortConv implements Conv<Short> {
+
+        @Override
+        public Short exec(String str) {
+            return Short.valueOf(str);
+        }
+    }
+
+    public static class CharConv implements Conv<Character> {
+
+        @Override
+        public Character exec(String str) {
+            return str.charAt(0);
+        }
+    }
+
+    public static class IntegerConv implements Conv<Integer> {
+
+        @Override
+        public Integer exec(String str) {
+            return Integer.valueOf(str);
+        }
+    }
+
+    public static class LongConv implements Conv<Long> {
+
+        @Override
+        public Long exec(String str) {
+            return Long.valueOf(str);
+        }
+    }
+
+    public static class FloatConv implements Conv<Float> {
+
+        @Override
+        public Float exec(String str) {
+            return Float.valueOf(str);
+        }
+    }
+
+    public static class DoubleConv implements Conv<Double> {
+
+        @Override
+        public Double exec(String str) {
+            return Double.valueOf(str);
+        }
     }
 
     //    字符串不为空
@@ -139,4 +243,5 @@ public class Util {
         if (interfaces.length == 0) return false;
         return Arrays.asList(interfaces).contains(ier);
     }
+
 }

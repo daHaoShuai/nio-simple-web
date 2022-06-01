@@ -1,9 +1,7 @@
 package com.da.controller;
 
-import com.da.web.core.Context;
-import com.da.web.core.Handler;
+import com.da.web.core.annotations.Component;
 import com.da.web.core.annotations.Inject;
-import com.da.web.core.annotations.Path;
 
 /**
  * Author Da
@@ -15,18 +13,26 @@ import com.da.web.core.annotations.Path;
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-06-01
- * Time: 15:17
+ * Time: 17:33
  */
-@Path("/hello")
-public class IndexController implements Handler {
+@Component("dog")
+public class Dog {
 
-    @Inject("user")
-    private User user;
-
+    @Inject("旺财")
     private String name;
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
-    public void callback(Context ctx) {
-        ctx.send("hello " + name + " user " + user);
+    public String toString() {
+        return "Dog{" +
+                "name='" + name + '\'' +
+                '}';
     }
 }
