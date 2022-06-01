@@ -1,10 +1,8 @@
-package com.da;
+package com.da.controller;
 
-import com.da.web.DApp;
+import com.da.web.Context;
+import com.da.web.Handler;
 import com.da.web.Path;
-import com.da.web.Util;
-
-import java.io.File;
 
 /**
  * Author Da
@@ -15,13 +13,13 @@ import java.io.File;
  * 领导每天新想法，天天改，日日忙。
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
- * Date: 2022-05-31
- * Time: 21:27
+ * Date: 2022-06-01
+ * Time: 15:17
  */
-public class App {
-    public static void main(String[] args) {
-        DApp app = new DApp(App.class);
-        app.use("/", ctx -> ctx.sendHtml("<h1>hello world</h1>"));
-        app.listen();
+@Path("/hello")
+public class IndexController implements Handler {
+    @Override
+    public void callback(Context ctx) {
+        ctx.send("hello");
     }
 }

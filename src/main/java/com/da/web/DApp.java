@@ -1,5 +1,6 @@
 package com.da.web;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -10,6 +11,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,6 +39,51 @@ public class DApp {
     public DApp() {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
+    }
+
+    //    传入配置类自动扫描注册处理器到路由表
+    public DApp(Class<?> clz) {
+//        记录初始化时间
+        this.startTime = System.currentTimeMillis();
+//        扫描注册
+        initScan(clz);
+    }
+
+    private void initScan(Class<?> clz) {
+//        配置类的包名
+        String packageName = clz.getPackage().getName();
+        String rootPathName = Util.replace(packageName, "\\.", "/");
+        File rootPath = Util.getResourceFile(rootPathName);
+        List<File> files = Util.scanFileToList(rootPath);
+        files.forEach(file -> handlerScanFile(packageName, file));
+    }
+
+    //    处理扫描出来的每个文件
+    private void handlerScanFile(String packageName, File file) {
+//        获取文件夹的绝对路径
+        String fileAbsolutePath = file.getAbsolutePath();
+//        处理所有以.class结尾的文件
+        if (fileAbsolutePath.endsWith(".class")) {
+            String className = Util.replace(fileAbsolutePath, "\\\\", "\\.");
+            className = className.substring(className.indexOf(packageName));
+            className = className.substring(0, className.lastIndexOf("."));
+            handlerClassName(className);
+        }
+    }
+
+    //    处理符合的class,注册到路由中去
+    private void handlerClassName(String className) {
+        Class<?> clz = Util.loadClass(className);
+        if (null != clz) {
+            if (Util.isAnnotation(clz, Path.class)) {
+                String path = clz.getAnnotation(Path.class).value();
+//                判断当前类有没有实现Handler接口,实现了就注册到路由表中
+                if (Util.isInterface(clz, Handler.class)) {
+                    Object o = Util.newInstance(clz);
+                    routes.put(path, (Handler) o);
+                }
+            }
+        }
     }
 
     //    请求注册处理
