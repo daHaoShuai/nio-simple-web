@@ -4,7 +4,6 @@ import com.da.web.Util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -80,12 +79,18 @@ public class Context {
         this.channel = channel;
 //        处理请求信息
         handlerRequest();
+        String respMsg = "请求方式 [" + this.method + "] 请求路径 [" + this.url + "]";
+        if (this.params.size() > 0) {
+            System.out.println(respMsg + " 请求参数 [" + this.params + "]");
+        } else {
+            System.out.println(respMsg);
+        }
     }
 
     private void handlerRequest() {
         //        解析请求信息
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            ByteBuffer buffer = ByteBuffer.allocate(1024 * 8);
             StringBuilder requestMsg = new StringBuilder();
             while (channel.read(buffer) > 0) {
                 buffer.flip();
@@ -164,7 +169,10 @@ public class Context {
     public void errPrint(Exception e) {
         e.printStackTrace();
         //            拼接响应字符串
-        String result = this.HTTP_VERSION + " " + ERR + "\n" + CONTENT_TYPE_HTML + "\n\n" + "出错了 [" + e.getMessage() + "]";
+        String result = this.HTTP_VERSION + " " + ERR + "\n" + CONTENT_TYPE_HTML + "\n\n" +
+                "<head><title>500</title></head><body>" +
+                "<h1 style='text-align: center;color: red;'>服务器出错了</h1><hr/><p>错误信息: " + e.getMessage() + "</p>" +
+                "</body></html>";
         try {
             this.channel.write(ByteBuffer.wrap(result.getBytes(StandardCharsets.UTF_8)));
             this.channel.close();

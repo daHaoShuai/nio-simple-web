@@ -11,6 +11,7 @@ package com.da.web.core;
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-05-31
  * Time: 19:31
+ * 为了辨别路由组件和消费上下文,所以不用Consumer而是自己定义
  */
 @FunctionalInterface
 public interface Handler {

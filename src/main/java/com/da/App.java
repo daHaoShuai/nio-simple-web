@@ -17,8 +17,8 @@ import com.da.web.Util;
  */
 public class App {
     public static void main(String[] args) {
-//        DApp app = new DApp();
         DApp app = new DApp(App.class);
+        app.use("/", ctx -> ctx.send(Util.getResourceFile("static/img/cs.png")));
         app.listen();
     }
 }
