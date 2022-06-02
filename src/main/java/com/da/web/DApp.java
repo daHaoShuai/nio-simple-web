@@ -62,10 +62,14 @@ public class DApp {
 
     //        扫描静态资源目录添加静态资源map中去
     private void scanStaticFile() {
-        File rootFile = Util.getResourceFile(this.staticDirName);
-        List<File> files = Util.scanFileToList(rootFile);
+        try {
+            File rootFile = Util.getResourceFile(this.staticDirName);
+            List<File> files = Util.scanFileToList(rootFile);
 //        处理扫描出来的文件添加对应的路由到路由表中
-        files.forEach(this::createRouteToStaticFile);
+            files.forEach(this::createRouteToStaticFile);
+        } catch (Exception e) {
+            System.out.println("静态资源目录不存在,或者目录中没有文件,跳过处理静态资源");
+        }
     }
 
     //    处理扫描出来的文件添加到对应的map中去
