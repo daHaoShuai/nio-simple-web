@@ -2,6 +2,7 @@ package com.da.web.core;
 
 import com.da.web.Util;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -137,7 +138,13 @@ public class Context {
         }
     }
 
-    //    发送信息
+    /**
+     * 发送信息
+     *
+     * @param headers 响应头
+     * @param code    响应码
+     * @param data    响应内容
+     */
     public void send(String headers, int code, String data) {
         try {
 //            拼接响应字符串
@@ -149,32 +156,80 @@ public class Context {
         }
     }
 
-    //    发送文本信息
+    /**
+     * 发送文本信息
+     *
+     * @param msg 文本信息
+     */
     public void send(String msg) {
         send(CONTENT_TYPE_TEXT, OK, msg);
     }
 
-    //    发送指定code的文本信息
+    /**
+     * 发送指定code的文本信息
+     *
+     * @param msg  文本信息
+     * @param code 响应码
+     */
     public void send(String msg, int code) {
         send(CONTENT_TYPE_TEXT, code, msg);
     }
 
-    //    发送网页信息
+    /**
+     * 发送网页信息
+     *
+     * @param msg 网页信息
+     */
     public void sendHtml(String msg) {
         send(CONTENT_TYPE_HTML, OK, msg);
     }
 
-    //    发送指定code的网页信息
+    /**
+     * 发送指定code的网页信息
+     *
+     * @param msg  网页信息
+     * @param code 响应码
+     */
     public void sendHtml(String msg, int code) {
         send(CONTENT_TYPE_HTML, code, msg);
     }
 
-    //    发送json信息
+    /**
+     * 发送html文件的内容
+     *
+     * @param file html文件
+     */
+    public void sendHtmlFile(File file) {
+        String msg = Util.readHtmlFileToString(file);
+        sendHtml(msg);
+    }
+
+    /**
+     * 发送指定code的html文件的内容
+     *
+     * @param file html文件
+     * @param code 响应码
+     */
+    public void sendHtmlFile(File file, int code) {
+        String msg = Util.readHtmlFileToString(file);
+        sendHtml(msg, code);
+    }
+
+    /**
+     * 发送json信息
+     *
+     * @param msg json信息
+     */
     public void sendJson(String msg) {
         send(CONTENT_TYPE_JSON, OK, msg);
     }
 
-    //    发送指定code的json信息
+    /**
+     * 发送指定code的json信息
+     *
+     * @param msg  json信息
+     * @param code 响应码
+     */
     public void sendJson(String msg, int code) {
         send(CONTENT_TYPE_JSON, code, msg);
     }

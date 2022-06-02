@@ -46,12 +46,17 @@ public class DApp {
     //    是否开启服务器
     private boolean isStart = false;
 
+    /**
+     * 空参构造不会扫描注入bean
+     */
     public DApp() {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
     }
 
-    //    传入配置类自动扫描注册处理器到路由表
+    /**
+     * @param clz 配置类,容器会扫描配置类的包及其子包下面的所有文件
+     */
     public DApp(Class<?> clz) {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
@@ -158,18 +163,29 @@ public class DApp {
         }
     }
 
-    //    请求注册处理
+    /**
+     * 请求注册处理
+     *
+     * @param path    请求的路由路径
+     * @param handler 对对应路由路径的处理
+     */
     public void use(String path, Handler handler) {
         routes.put(path, handler);
     }
 
-    //    用默认端口启动服务
+    /**
+     * 用默认端口(8080)启动服务
+     */
     public void listen() {
         //    默认端口8080
         listen(8080);
     }
 
-    //    启动监听
+    /**
+     * 指定端口启动服务
+     *
+     * @param port 端口
+     */
     public void listen(int port) {
 //         不知道有没有用,反正加上也没事
         System.setProperty("java.awt.headless", Boolean.toString(true));
@@ -337,7 +353,9 @@ public class DApp {
         }
     }
 
-    //    关闭服务器
+    /**
+     * 关闭服务器
+     */
     public void shutdown() {
         isStart = false;
     }
@@ -362,12 +380,24 @@ public class DApp {
         System.out.println("\t启动总耗时: " + (System.currentTimeMillis() - startTime) + "ms\n");
     }
 
-    //    获取扫描出来的实例化好的bean
+    /**
+     * 获取扫描出来的实例化好的bean
+     *
+     * @param beanName bean的名字
+     * @return 容器实例化好的bean
+     */
     public Object getBean(String beanName) {
         return beans.get(beanName);
     }
 
-    //    获取扫描出来的实例化好的bean,并且转好类型
+    /**
+     * 获取扫描出来的实例化好的bean,并且转好类型
+     *
+     * @param beanName bean的名字
+     * @param t        要转成的类型
+     * @return 转好类型的bean
+     */
+    @SuppressWarnings("unchecked") // 让编译器不报黄线
     public <T> T getBean(String beanName, Class<T> t) {
         if (null != getBean(beanName)) {
             return (T) getBean(beanName);
