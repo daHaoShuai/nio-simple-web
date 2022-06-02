@@ -313,7 +313,7 @@ public class DApp {
     }
 
     //    处理对应的路由请求
-    private void handlerRoutes(Context context) throws FileNotFoundException {
+    private void handlerRoutes(Context context) {
         //            获取请求的url
         String url = context.getUrl();
 //        判断路由表中有没有对应的路由
@@ -338,7 +338,7 @@ public class DApp {
     }
 
     //    处理静态资源目录中的路由
-    private void handlerStaticRoute(String url, Context context) throws FileNotFoundException {
+    private void handlerStaticRoute(String url, Context context) {
         File file = staticFiles.get(url);
 //        发送文件到浏览器
         context.send(file);
@@ -374,7 +374,7 @@ public class DApp {
                         Object value = conv.apply(beanNameOrValue);
                         field.set(bean, value);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        context.errPrint(e);
                     } finally {
                         field.setAccessible(false);
                     }
@@ -386,7 +386,7 @@ public class DApp {
                     try {
                         field.set(bean, initBean);
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        context.errPrint(e);
                     } finally {
                         field.setAccessible(false);
                     }
@@ -406,7 +406,7 @@ public class DApp {
                         Object o = conv.apply(value);
                         field.set(bean, o);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        context.errPrint(e);
                     } finally {
                         field.setAccessible(false);
                     }

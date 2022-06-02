@@ -127,7 +127,7 @@ public class Context {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            errPrint(e);
         }
     }
 
@@ -156,7 +156,20 @@ public class Context {
             channel.write(ByteBuffer.wrap(result.getBytes(StandardCharsets.UTF_8)));
             channel.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            errPrint(e);
+        }
+    }
+
+    //    发送错误信息到浏览器
+    public void errPrint(Exception e) {
+        e.printStackTrace();
+        //            拼接响应字符串
+        String result = this.HTTP_VERSION + " " + ERR + "\n" + CONTENT_TYPE_HTML + "\n\n" + "出错了 [" + e.getMessage() + "]";
+        try {
+            this.channel.write(ByteBuffer.wrap(result.getBytes(StandardCharsets.UTF_8)));
+            this.channel.close();
+        } catch (IOException e1) {
+            e1.printStackTrace();
         }
     }
 
@@ -261,13 +274,13 @@ public class Context {
             fc.close();
             this.channel.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            errPrint(e);
         } finally {
             if (null != is) {
                 try {
                     is.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    errPrint(e);
                 }
             }
         }
