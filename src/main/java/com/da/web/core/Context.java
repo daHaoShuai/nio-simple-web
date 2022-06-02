@@ -3,9 +3,13 @@ package com.da.web.core;
 import com.da.web.Util;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -234,4 +238,38 @@ public class Context {
         send(CONTENT_TYPE_JSON, code, msg);
     }
 
+    /**
+     * 向浏览器发送文件
+     *
+     * @param file 要发送的文件
+     */
+    public void send(File file) {
+//        获取文件的类型
+        String fileType = Util.getFileType(file);
+        FileInputStream is = null;
+        try {
+            is = new FileInputStream(file);
+//            响应头信息
+            String dataStr = this.HTTP_VERSION + " " + OK + "\nContent-Type: " + fileType + ";charset=utf-8\n\n";
+//            写入响应头信息
+            this.channel.write(ByteBuffer.wrap(dataStr.getBytes(StandardCharsets.UTF_8)));
+//            获取文件读取通道
+            FileChannel fc = is.getChannel();
+//            读取文件内容写到写入通道
+            fc.transferTo(0, fc.size(), this.channel);
+//            关闭通道
+            fc.close();
+            this.channel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (null != is) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }

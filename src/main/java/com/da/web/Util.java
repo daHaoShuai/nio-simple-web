@@ -180,7 +180,7 @@ public class Util {
      * 获取资源目录下的文件路径
      *
      * @param fileName 资源目录下的文件名字
-     * @return 资源目录下的文件Path
+     * @return 资源目录下的文件路径
      */
     public static String getResourcePath(String fileName) {
         return getResourceFile(fileName).getPath();
@@ -324,5 +324,22 @@ public class Util {
      */
     public static String readHtmlFileToString(File file) {
         return readFileAndFlagToString(file, ".html", StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 获取文件的类型
+     *
+     * @param file 要获取的类型的文件
+     * @return 文件的类型
+     */
+    public static String getFileType(File file) {
+        String type;
+        try {
+            type = Files.probeContentType(file.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            type = "";
+        }
+        return type;
     }
 }

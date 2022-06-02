@@ -118,3 +118,5 @@ public class IndexController implements Handler {
     }
 }
 ```
+
+**约定resources目录下的static目录为静态资源目录,默认index.html为/访问路径**

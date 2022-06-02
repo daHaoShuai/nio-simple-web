@@ -17,8 +17,8 @@ import com.da.web.Util;
  */
 public class App {
     public static void main(String[] args) {
+//        DApp app = new DApp();
         DApp app = new DApp(App.class);
-        app.use("/", ctx -> ctx.sendHtmlFile(Util.getResourceFile("static/index.html")));
         app.listen();
     }
 }

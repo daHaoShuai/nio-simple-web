@@ -7,6 +7,8 @@ import com.da.web.core.annotations.Inject;
 import com.da.web.core.annotations.Path;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -16,6 +18,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +44,10 @@ public class DApp {
     private final Map<String, Handler> routes = new HashMap<>();
     //    保存扫描出来的bean
     private final Map<String, Object> beans = new HashMap<>();
+    //    静态目录名字
+    private final String staticDirName = "static";
+    //    静态path对应的资源文件
+    private final Map<String, File> staticFiles = new HashMap<>();
     //    服务初始化时间
     private final long startTime;
     //    是否开启服务器
@@ -52,6 +59,35 @@ public class DApp {
     public DApp() {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
+//        扫描静态资源目录添加到路由表中
+        scanStaticFile();
+    }
+
+    //        扫描静态资源目录添加静态资源map中去
+    private void scanStaticFile() {
+        File rootFile = Util.getResourceFile(this.staticDirName);
+        List<File> files = Util.scanFileToList(rootFile);
+//        处理扫描出来的文件添加对应的路由到路由表中
+        files.forEach(this::createRouteToStaticFile);
+    }
+
+    //    处理扫描出来的文件添加到对应的map中去
+    private void createRouteToStaticFile(File file) {
+        String parentName = file.getParentFile().getName();
+        String fileName = file.getName();
+//        路由路径
+        String path;
+//        如果父目录是static指定的目录
+        if (this.staticDirName.equals(parentName)) {
+            if ("index.html".equals(fileName)) {
+                path = "/";
+            } else {
+                path = "/" + fileName;
+            }
+        } else {
+            path = "/" + parentName + "/" + fileName;
+        }
+        staticFiles.put(path, file);
     }
 
     /**
@@ -60,6 +96,8 @@ public class DApp {
     public DApp(Class<?> clz) {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
+//        扫描静态资源目录添加到路由表中
+        scanStaticFile();
 //        扫描注册路由和bean组件
         initScan(clz);
 //        给component的bean注入属性
@@ -269,27 +307,51 @@ public class DApp {
             SocketChannel channel = (SocketChannel) selectionKey.channel();
 //           创建当前通道的上下文对象,用于解析请求信息和响应内容到浏览器
             Context context = new Context(channel);
-//            获取请求的url
-            String url = context.getUrl();
-//           判断路由表中有没有对应的路由
-            if (routes.containsKey(url)) {
-//              执行回调
-                routes.get(url).callback(context);
-            }
-//            在bean池中看看有没有对应的bean
-            else if (beans.containsKey(url)) {
-//                获取对应的bean,注入属性
-                Object bean = beans.get(url);
-//                动态注入属性
-                injectValueToPathBean(bean, context);
-//                执行回调
-                ((Handler) bean).callback(context);
-            }
-//              找不到就是404
-            else {
-                context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", Context.NOTFOUND);
-            }
+//           处理对应的路由请求
+            handlerRoutes(context);
         }
+    }
+
+    //    处理对应的路由请求
+    private void handlerRoutes(Context context) throws FileNotFoundException {
+        //            获取请求的url
+        String url = context.getUrl();
+//        判断路由表中有没有对应的路由
+        if (routes.containsKey(url)) {
+//              执行回调
+            routes.get(url).callback(context);
+        }
+//        判断静态资源目录中有没有对应的路由路径
+        else if (staticFiles.containsKey(url)) {
+            //    处理静态资源目录中的路由
+            handlerStaticRoute(url, context);
+        }
+//            在bean池中看看有没有对应的bean
+        else if (beans.containsKey(url)) {
+            //    处理bean池中的路由
+            handBeanRoute(url, context);
+        }
+//        找不到就是404
+        else {
+            context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", Context.NOTFOUND);
+        }
+    }
+
+    //    处理静态资源目录中的路由
+    private void handlerStaticRoute(String url, Context context) throws FileNotFoundException {
+        File file = staticFiles.get(url);
+//        发送文件到浏览器
+        context.send(file);
+    }
+
+    //    处理bean池中的路由
+    private void handBeanRoute(String url, Context context) {
+        //                获取对应的bean,注入属性
+        Object bean = beans.get(url);
+//                动态注入属性
+        injectValueToPathBean(bean, context);
+//                执行回调
+        ((Handler) bean).callback(context);
     }
 
     //    注入PathBean的属性
