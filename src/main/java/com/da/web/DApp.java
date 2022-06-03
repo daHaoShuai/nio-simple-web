@@ -358,7 +358,7 @@ public class DApp {
     //    注入PathBean的属性
     private void injectValueToPathBean(Object bean, Context context) {
 //        当前的请求参数
-        Map<String, String> params = context.getParams();
+        Map<String, Object> params = context.getParams();
         Class<?> clz = bean.getClass();
         Field[] fields = clz.getDeclaredFields();
         for (Field field : fields) {
@@ -396,7 +396,7 @@ public class DApp {
 //            没有Inject注解就尝试注入请求的参数
             else if (params.containsKey(field.getName())) {
 //                获取请求参数的值
-                String value = params.get(field.getName());
+                String value = (String) params.get(field.getName());
 //                获取转换器
                 Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
 //                尝试注入基本类型

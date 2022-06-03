@@ -1,6 +1,12 @@
 package com.da;
 
 import com.da.web.DApp;
+import com.da.web.Util;
+import com.da.web.core.Node;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Author Da
@@ -11,13 +17,19 @@ import com.da.web.DApp;
  * 领导每天新想法，天天改，日日忙。
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
- * Date: 2022-06-02
- * Time: 13:27
+ * Date: 2022-06-03
+ * Time: 10:37
  */
 public class App {
     public static void main(String[] args) {
         DApp app = new DApp(App.class);
-        app.use("/",ctx -> ctx.sendHtml("<h1>hello world</h1>"));
         app.listen();
+        app.use("/post", ctx -> {
+            Map<String, Object> params = ctx.getParams();
+            System.out.println(params);
+            ctx.send("ok");
+        });
     }
+
+
 }

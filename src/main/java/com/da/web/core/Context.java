@@ -53,7 +53,7 @@ public class Context {
     //    请求方法
     private String method;
     //    请求参数
-    private final Map<String, String> params = new HashMap<>();
+    private final Map<String, Object> params = new HashMap<String, Object>();
     //    http协议版本,默认是 HTTP/1.1
     private String HTTP_VERSION = "HTTP/1.1";
     //    读写通道
@@ -67,7 +67,7 @@ public class Context {
         return method;
     }
 
-    public Map<String, String> getParams() {
+    public Map<String, Object> getParams() {
         return params;
     }
 
@@ -79,11 +79,14 @@ public class Context {
         this.channel = channel;
 //        处理请求信息
         handlerRequest();
-        String respMsg = "请求方式 [" + this.method + "] 请求路径 [" + this.url + "]";
-        if (this.params.size() > 0) {
-            System.out.println(respMsg + " 请求参数 [" + this.params + "]");
-        } else {
-            System.out.println(respMsg);
+//        请求不为null的时候打印一下请求信息
+        if (this.url != null) {
+            String respMsg = "请求方式 [" + this.method + "] 请求路径 [" + this.url + "]";
+            if (this.params.size() > 0) {
+                System.out.println(respMsg + " 请求参数 [" + this.params + "]");
+            } else {
+                System.out.println(respMsg);
+            }
         }
     }
 
@@ -106,7 +109,12 @@ public class Context {
 //                解析第一行的信息 请求方法 请求路径 http协议版本
                     String[] info = messages[0].split(" ");
                     if (Util.isArrayNotNull(info) && info.length == 3) {
+//                        请求的方式
                         this.method = info[0];
+//                        处理post请求的数据
+                        if ("POST".equals(this.method)) {
+                            handlerPostBody(requestMsg.toString());
+                        }
 //                        处理url
                         String beforeUrl = info[1];
                         if (beforeUrl.contains("?")) {
@@ -135,6 +143,18 @@ public class Context {
             errPrint(e);
         }
     }
+
+    //    处理post请求,(目前只处理json字符串的形式)
+    private void handlerPostBody(String data) {
+        String[] messages = data.split("\n");
+//        最后一行是json数据
+        String jsonMsg = messages[messages.length - 1];
+//        解析json到Map中
+        Map<String, Object> map = Util.parseJsonToMap(jsonMsg);
+//        把解析出来的数据填充到params中去
+        this.params.putAll(map);
+    }
+
 
     //    因为中文会有编码的问题所以要处理一下
     private void handlerParamsToMap(String Params) throws UnsupportedEncodingException {

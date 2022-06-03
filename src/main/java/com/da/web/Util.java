@@ -1,6 +1,8 @@
 package com.da.web;
 
 
+import com.da.web.core.Node;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -342,5 +344,116 @@ public class Util {
             type = "";
         }
         return type;
+    }
+
+    /**
+     * 解析json为Node节点
+     *
+     * @param json 要解析的json字符串
+     * @param root Node根节点
+     * @return 解析出来的Node节点
+     */
+    public static Node parseJson(String json, Node root) {
+//        没有传入根节点的时候就造一个空的根节点
+        if (null == root) {
+            root = new Node();
+        }
+//        去掉前后的{}
+        json = json.substring(1, json.length() - 1);
+//        用,隔开每个数据
+        String[] jsonArr = json.split(",");
+//        分割开每个键值对
+        for (String element : jsonArr) {
+//            如果当前元素还有{}
+            if (element.contains("{") && element.contains("}")) {
+//                用{分割开
+                String[] node = element.split("\\{");
+                if (Util.isArrayNotNull(node) && node.length == 2) {
+//                    当前节点的key
+                    String key = node[0].substring(1, node[0].lastIndexOf("\""));
+//                    要解析的对象字符串
+                    String jsonValue = "{" + node[1];
+//                    子节点的父节点
+                    Node childrenNode = new Node(key);
+//                    解析出来的子节点
+                    Node parserNode = parseJson(jsonValue, childrenNode);
+//                    往根节点添加子节点
+                    root.children().add(parserNode);
+                }
+            } else {
+//                没有{}就是普通的键值对
+                String[] node = element.split(":");
+                if (Util.isArrayNotNull(node) && node.length == 2) {
+                    String key = node[0].replaceAll("\"", "");
+                    String value = node[1].replaceAll("\"", "");
+                    Node el = new Node(key, value);
+                    root.children().add(el);
+                }
+            }
+        }
+        return root;
+    }
+
+    /**
+     * 解析json为Node节点,根节点的key和value为null
+     *
+     * @param json 要解析的json字符串
+     * @return 解析出来的Node节点
+     */
+    public static Node parseJson(String json) {
+        return parseJson(json, null);
+    }
+
+    /**
+     * 解析Node节点数据到Map中
+     *
+     * @param root Node节点
+     * @param map  存数据的Map
+     */
+    public static void parseNodeToMap(Node root, Map<String, Object> map) {
+//        获取当前节点的信息
+        String key = root.getKey();
+        Object value = root.getValue();
+        List<Node> nodes = root.children();
+//        存储当前的值到map
+        if (null != key && null != value) {
+            map.put(key, value);
+        }
+//        有值的时候再遍历
+        if (nodes.size() > 0) {
+            nodes.forEach(node -> handlerChildrenNode(key, node, map));
+        }
+    }
+
+    // 解析Node的子节点信息
+    private static void handlerChildrenNode(String parentKey, Node node, Map<String, Object> map) {
+        String key = node.getKey();
+        Object value = node.getValue();
+        List<Node> nodes = node.children();
+        if (null != key && null != value) {
+//            如果父节点的key不为null,当前值的key就是父节点的key.当前的key
+            if (null != parentKey) {
+                key = parentKey + "." + key;
+            }
+//            添加当前的节点数据到map中
+            map.put(key, value);
+        }
+        if (nodes.size() > 0) {
+            String finalKey = key;
+            nodes.forEach(c -> handlerChildrenNode(finalKey, c, map));
+        }
+    }
+
+    /**
+     * 解析json到map中去
+     *
+     * @param json 要解析的json字符串
+     * @return 解析出来的map
+     */
+    public static Map<String, Object> parseJsonToMap(String json) {
+        Map<String, Object> map = new HashMap<>();
+        Node node = parseJson(json);
+        parseNodeToMap(node, map);
+        return map;
     }
 }
