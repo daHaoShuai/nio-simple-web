@@ -120,3 +120,18 @@ public class IndexController implements Handler {
 ```
 
 **约定resources目录下的static目录为静态资源目录,默认index.html为/访问路径**
+
+
+###### 简单的json转map
+```java
+public class App {
+    public static void main(String[] args) {
+//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"}}";
+//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\"}}";
+//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\"}}";
+        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\",\"other\":{\"name\":\"哈哈\"}}}";
+        Map<String, Object> map = Util.parseJsonToMap(json);
+        System.out.println(map);
+    }
+}
+```

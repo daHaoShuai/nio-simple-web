@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -165,6 +167,26 @@ public class Util {
      */
     public static boolean isNullFile(File file) {
         return !isNotNullFile(file);
+    }
+
+    /**
+     * 查询字符在字符串中出现第n次的坐标
+     *
+     * @param str     原始字符串
+     * @param findStr 要查找的字符
+     * @param i       字符出现的第几个位置
+     * @return 查找到的坐标
+     */
+    public static int getStrIndex(String str, String findStr, int i) {
+        int idx = 0;
+        while (i > 0) {
+            int tempIdx = str.indexOf(findStr);
+            if (tempIdx == -1) throw new RuntimeException("在" + str + "中找不到字符" + findStr + "第" + i + "处的坐标");
+            str = str.substring(0, tempIdx) + " " + str.substring(tempIdx + 1);
+            idx += tempIdx;
+            i--;
+        }
+        return idx;
     }
 
     /**
@@ -347,12 +369,13 @@ public class Util {
     }
 
     /**
-     * 解析json为Node节点
+     * 解析json为Node节点,只能解析一层的json
      *
      * @param json 要解析的json字符串
      * @param root Node根节点
      * @return 解析出来的Node节点
      */
+    @Deprecated
     public static Node parseJson(String json, Node root) {
 //        没有传入根节点的时候就造一个空的根节点
         if (null == root) {
@@ -360,35 +383,84 @@ public class Util {
         }
 //        去掉前后的{}
         json = json.substring(1, json.length() - 1);
-//        用,隔开每个数据
+//        用,隔开每个数据 只处理第一层的{}
         String[] jsonArr = json.split(",");
 //        分割开每个键值对
+        StringBuilder tempJson = new StringBuilder();
         for (String element : jsonArr) {
-//            如果当前元素还有{}
-            if (element.contains("{") && element.contains("}")) {
-//                用{分割开
-                String[] node = element.split("\\{");
-                if (Util.isArrayNotNull(node) && node.length == 2) {
-//                    当前节点的key
-                    String key = node[0].substring(1, node[0].lastIndexOf("\""));
-//                    要解析的对象字符串
-                    String jsonValue = "{" + node[1];
-//                    子节点的父节点
-                    Node childrenNode = new Node(key);
-//                    解析出来的子节点
-                    Node parserNode = parseJson(jsonValue, childrenNode);
-//                    往根节点添加子节点
-                    root.children().add(parserNode);
+//            如果当前元素有{
+            if (element.contains("{")) {
+                tempJson.append(element).append(",");
+//            如果当前元素有}
+            } else if (element.contains("}")) {
+                tempJson.append(element).append(",");
+            } else {
+//                没有{或者}就是普通的键值对
+                addSimpleNode(element, root);
+            }
+        }
+//        处理嵌套的a:{b:{c:d}}
+        if (Util.isNotBlank(tempJson.toString())) {
+            String jsonStr = tempJson.toString();
+            System.out.println(jsonStr);
+            jsonStr = jsonStr.substring(0, jsonStr.length() - 1);
+//            第一个:的位置
+            int firstColon = jsonStr.indexOf(":");
+//            当前节点的key
+            String key = jsonStr.substring(1, firstColon - 1);
+            String value = jsonStr.substring(firstColon + 1);
+            Node node = parseJson(value, new Node(key));
+            root.children().add(node);
+        }
+        return root;
+    }
+
+    //    添加普通节点
+    private static void addSimpleNode(String element, Node root) {
+        String[] node = element.split(":");
+        if (Util.isArrayNotNull(node) && node.length == 2) {
+//                    去掉"和{}
+            String key = node[0].replaceAll("\"", "").replaceAll("\\{", "");
+            String value = node[1].replaceAll("\"", "").replaceAll("}", "");
+            Node el = new Node(key, value);
+            root.children().add(el);
+        }
+    }
+
+    /**
+     * 解析jsn为节点
+     *
+     * @param json 要解析的json
+     * @param root 根节点
+     * @return 解析出来的node
+     */
+    public static Node parseJsonToNode(String json, Node root) {
+        //        拆分json字符串
+        String reg = "(\"\\w+\"):(?:\"[^\"]+\"|[0-9]+|\\{.+})";
+//        匹配键值对形式的字符串
+        String kvReg = "(\"\\w+\"):(?:\"[^\"]+\"|[0-9]+)";
+        if (null == root) {
+            root = new Node();
+        }
+        Pattern compile = Pattern.compile(reg);
+        Matcher matcher = compile.matcher(json);
+        while (matcher.find()) {
+            String value = matcher.group();
+//            如果是键值对形式的 k:v
+            if (value.matches(kvReg)) {
+                String[] data = value.replaceAll("\"", "").split(":");
+                if (Util.isArrayNotNull(data) && data.length == 2) {
+                    Node node = new Node(data[0], data[1]);
+                    root.children().add(node);
                 }
             } else {
-//                没有{}就是普通的键值对
-                String[] node = element.split(":");
-                if (Util.isArrayNotNull(node) && node.length == 2) {
-                    String key = node[0].replaceAll("\"", "");
-                    String value = node[1].replaceAll("\"", "");
-                    Node el = new Node(key, value);
-                    root.children().add(el);
-                }
+//                第一个:的位置
+                int firstColon = value.indexOf(":");
+                String key = value.substring(0, firstColon).replaceAll("\"", "");
+                String jsonValue = value.substring(firstColon + 1);
+                jsonValue = jsonValue.substring(0, jsonValue.length() - 1);
+                Node node = parseJsonToNode(jsonValue, new Node(key));
+                root.children().add(node);
             }
         }
         return root;
@@ -401,7 +473,7 @@ public class Util {
      * @return 解析出来的Node节点
      */
     public static Node parseJson(String json) {
-        return parseJson(json, null);
+        return parseJsonToNode(json, null);
     }
 
     /**
