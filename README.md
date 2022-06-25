@@ -121,8 +121,8 @@ public class IndexController implements Handler {
 
 **约定resources目录下的static目录为静态资源目录,默认index.html为/访问路径**
 
+###### 简单的json转map,因为正则匹配的不好所以会有问题,简单的{a:xx,b:xx}这种没有问题
 
-###### 简单的json转map
 ```java
 public class App {
     public static void main(String[] args) {

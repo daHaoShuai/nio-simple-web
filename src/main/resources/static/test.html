@@ -11,9 +11,13 @@
     const post = document.querySelector(".post");
     post.onclick = () => {
         axios.post('/post', {
-            name: '杰哥',
-            age: 10,
-            sex: '男'
+            name: '阿达',
+            age: 18,
+            sex: '男',
+            job: 'ok',
+            wife: {
+                name: '王冰冰'
+            }
         })
             .then(res => {
                 console.log(res)

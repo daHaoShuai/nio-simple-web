@@ -1,15 +1,6 @@
 package com.da;
 
 import com.da.web.DApp;
-import com.da.web.Util;
-import com.da.web.core.Node;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Author Da
@@ -26,10 +17,7 @@ import java.util.regex.Pattern;
 public class App {
     public static void main(String[] args) {
         DApp app = new DApp(App.class);
-        app.use("/post", ctx -> {
-            System.out.println(ctx.getParams());
-            ctx.send("hello world");
-        });
+        app.use("/post", ctx -> ctx.send("ok"));
         app.listen();
     }
 }

@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -428,7 +430,7 @@ public class Util {
     }
 
     /**
-     * 解析jsn为节点
+     * 解析json为节点
      *
      * @param json 要解析的json
      * @param root 根节点
@@ -527,5 +529,40 @@ public class Util {
         Node node = parseJson(json);
         parseNodeToMap(node, map);
         return map;
+    }
+
+    /**
+     * 简单的解析列表为json字符串
+     *
+     * @param list 要解析的list
+     * @param t    list中的类型
+     * @return 解析好的json字符串
+     */
+    public static <T> String parseListToString(List<T> list, Class<T> t) {
+        final StringBuilder json = new StringBuilder();
+        try {
+            json.append("{\"").append(t.getSimpleName().toLowerCase()).append("s\":[");
+            for (int j = 0; j < list.size(); j++) {
+                final Field[] fields = t.getDeclaredFields();
+                json.append("{");
+                for (int i = 0; i < fields.length; i++) {
+                    final String name = fields[i].getName();
+                    final T t1 = list.get(i);
+                    final Method method = t.getDeclaredMethod("get" + name.substring(0, 1).toUpperCase() + name.substring(1));
+                    json.append("\"")
+                            .append(name)
+                            .append("\":\"")
+                            .append(method.invoke(t1))
+                            .append("\",");
+                }
+                json.deleteCharAt(json.length() - 1);
+                json.append("},");
+            }
+            json.deleteCharAt(json.length() - 1);
+            json.append("]}");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return json.toString();
     }
 }
