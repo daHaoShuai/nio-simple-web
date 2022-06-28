@@ -1,10 +1,9 @@
-package com.da.web;
+package com.da.web.util;
 
 
 import com.da.web.core.Node;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -43,6 +42,27 @@ public class Util {
     //    保存类型转换工具的类
     private static final Map<String, Function<String, Object>> typeMap = new HashMap<>();
 
+    //    填充转换器map
+    static {
+        typeMap.put("java.lang.String", str -> str);
+        typeMap.put("byte", Byte::valueOf);
+        typeMap.put("java.lang.Byte", Byte::valueOf);
+        typeMap.put("boolean", Boolean::valueOf);
+        typeMap.put("java.lang.Boolean", Boolean::valueOf);
+        typeMap.put("short", Short::valueOf);
+        typeMap.put("java.lang.Short", Short::valueOf);
+        typeMap.put("char", str -> str.charAt(0));
+        typeMap.put("java.lang.Character", str -> str.charAt(0));
+        typeMap.put("int", Integer::valueOf);
+        typeMap.put("java.lang.Integer", Integer::valueOf);
+        typeMap.put("long", Long::valueOf);
+        typeMap.put("java.lang.Long", Long::valueOf);
+        typeMap.put("float", Float::valueOf);
+        typeMap.put("java.lang.Float", Float::valueOf);
+        typeMap.put("double", Double::valueOf);
+        typeMap.put("java.lang.Double", Double::valueOf);
+    }
+
     //    私有构造
     private Util() {
     }
@@ -63,32 +83,7 @@ public class Util {
      * @return 对应类型的转换器
      */
     public static Function<String, Object> getTypeConv(String type) {
-        if (typeMap.size() == 0) {
-//            填充数据到map中去
-            initConvMap();
-        }
         return typeMap.get(type);
-    }
-
-    //    填充类型转换器
-    private static void initConvMap() {
-        typeMap.put("java.lang.String", str -> str);
-        typeMap.put("byte", Byte::valueOf);
-        typeMap.put("java.lang.Byte", Byte::valueOf);
-        typeMap.put("boolean", Boolean::valueOf);
-        typeMap.put("java.lang.Boolean", Boolean::valueOf);
-        typeMap.put("short", Short::valueOf);
-        typeMap.put("java.lang.Short", Short::valueOf);
-        typeMap.put("char", str -> str.charAt(0));
-        typeMap.put("java.lang.Character", str -> str.charAt(0));
-        typeMap.put("int", Integer::valueOf);
-        typeMap.put("java.lang.Integer", Integer::valueOf);
-        typeMap.put("long", Long::valueOf);
-        typeMap.put("java.lang.Long", Long::valueOf);
-        typeMap.put("float", Float::valueOf);
-        typeMap.put("java.lang.Float", Float::valueOf);
-        typeMap.put("double", Double::valueOf);
-        typeMap.put("java.lang.Double", Double::valueOf);
     }
 
     /**
@@ -199,7 +194,7 @@ public class Util {
      */
     public static File getResourceFile(String fileName) {
         URL url = util.getClass().getClassLoader().getResource(fileName);
-        assert url != null;
+        if (null == url) return null;
         return new File(url.getFile());
     }
 

@@ -1,10 +1,11 @@
 package com.da.web;
 
 import com.da.web.core.Context;
-import com.da.web.core.Handler;
-import com.da.web.core.annotations.Component;
-import com.da.web.core.annotations.Inject;
-import com.da.web.core.annotations.Path;
+import com.da.web.function.Handler;
+import com.da.web.annotations.Component;
+import com.da.web.annotations.Inject;
+import com.da.web.annotations.Path;
+import com.da.web.util.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,13 +63,11 @@ public class DApp {
 
     //        扫描静态资源目录添加静态资源map中去
     private void scanStaticFile() {
-        try {
-            File rootFile = Util.getResourceFile(this.staticDirName);
+        File rootFile = Util.getResourceFile(this.staticDirName);
+        if (rootFile != null) {
             List<File> files = Util.scanFileToList(rootFile);
 //        处理扫描出来的文件添加对应的路由到路由表中
             files.forEach(this::createRouteToStaticFile);
-        } catch (Exception e) {
-            System.out.println("静态资源目录不存在,或者目录中没有文件,跳过处理静态资源");
         }
     }
 

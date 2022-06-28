@@ -1,4 +1,4 @@
-package com.da.web.core.annotations;
+package com.da.web.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -15,11 +15,11 @@ import java.lang.annotation.Target;
  * 相顾无言，惟有泪千行。
  * 每晚灯火阑珊处，夜难寐，又加班。
  * Date: 2022-06-01
- * Time: 16:25
- * 标记为组件
+ * Time: 15:16
+ * 标记请求路径
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Component {
+public @interface Path {
     String value();
 }
