@@ -17,6 +17,8 @@ import com.da.web.DApp;
 public class App {
     public static void main(String[] args) {
         final DApp app = new DApp(App.class);
-        app.listen(8082);
+        app.listen();
+//        获取配置文件中的信息
+        System.out.println(app.getCfgInfo("port"));
     }
 }

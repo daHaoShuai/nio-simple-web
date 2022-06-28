@@ -16,6 +16,8 @@ public class App {
 //        自动扫描加了@Path注解并且实现了Handler接口的类,注册到路由表
         DApp app = new DApp(App.class);
         app.listen();
+//        获取配置文件中的信息
+        System.out.println(app.getCfgInfo("port"));
     }
 }
 
@@ -26,6 +28,14 @@ public class IndexController implements Handler {
         ctx.send("hello");
     }
 }
+```
+使用配置文件配置端口和static目录
+resources/app.properties
+```properties
+#指定端口号
+port=8083
+#指定static目录,用/分开文件夹,static目录下的index.html访问路径为/
+static=aaa/aaa
 ```
 
 ```java

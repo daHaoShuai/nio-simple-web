@@ -8,6 +8,7 @@ import com.da.web.annotations.Path;
 import com.da.web.util.Util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -43,13 +45,17 @@ public class DApp {
     //    保存扫描出来的bean
     private final Map<String, Object> beans = new HashMap<>();
     //    静态目录名字
-    private final String staticDirName = "static";
+    private String staticDirName = "static";
     //    静态path对应的资源文件
     private final Map<String, File> staticFiles = new HashMap<>();
     //    服务初始化时间
     private final long startTime;
     //    是否开启服务器
     private boolean isStart = false;
+    //    从8080开始找可用的端口
+    private int PORT = 8080;
+    //    配置文件解析
+    private Properties properties = null;
 
     /**
      * 空参构造不会扫描注入bean
@@ -57,8 +63,20 @@ public class DApp {
     public DApp() {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
+//        获取并且解析配置文件
+        getAndParseConfig();
 //        扫描静态资源目录添加到路由表中
         scanStaticFile();
+    }
+
+    //        获取并且解析配置文件
+    private void getAndParseConfig() {
+//        解析端口号
+        final String port = getCfgInfo("port");
+        if (Util.isNotBlank(port)) PORT = Integer.parseInt(port);
+//        解析静态资源目录
+        final String staticPath = getCfgInfo("static");
+        if (Util.isNotBlank(staticPath)) staticDirName = staticPath;
     }
 
     //        扫描静态资源目录添加静态资源map中去
@@ -73,20 +91,12 @@ public class DApp {
 
     //    处理扫描出来的文件添加到对应的map中去
     private void createRouteToStaticFile(File file) {
-        String parentName = file.getParentFile().getName();
-        String fileName = file.getName();
-//        路由路径
-        String path;
-//        如果父目录是static指定的目录
-        if (this.staticDirName.equals(parentName)) {
-            if ("index.html".equals(fileName)) {
-                path = "/";
-            } else {
-                path = "/" + fileName;
-            }
-        } else {
-            path = "/" + parentName + "/" + fileName;
-        }
+//        获取当前文件的绝对路径
+        final String absolutePath = file.getAbsolutePath().replaceAll("\\\\", "/");
+//        裁掉静态目录的路径就是路由路径
+        String path = absolutePath.substring(absolutePath.indexOf(this.staticDirName) + this.staticDirName.length());
+//        让静态资源目录下的index.html文件为/
+        if ("/index.html".equals(path)) path = "/";
         staticFiles.put(path, file);
     }
 
@@ -96,6 +106,8 @@ public class DApp {
     public DApp(Class<?> clz) {
 //        记录初始化时间
         this.startTime = System.currentTimeMillis();
+//        获取并且解析配置文件
+        getAndParseConfig();
 //        扫描静态资源目录添加到路由表中
         scanStaticFile();
 //        扫描注册路由和bean组件
@@ -216,7 +228,7 @@ public class DApp {
      */
     public void listen() {
         //    默认端口8080
-        listen(8080);
+        listen(PORT);
     }
 
     /**
@@ -246,7 +258,9 @@ public class DApp {
 //            初始化服务器
             initServer(port);
         } catch (IOException e) {
-            e.printStackTrace();
+//            默认端口号+1,重新监听
+            PORT = PORT + 1;
+            listen();
         }
     }
 
@@ -361,11 +375,11 @@ public class DApp {
         Class<?> clz = bean.getClass();
         Field[] fields = clz.getDeclaredFields();
         for (Field field : fields) {
+//            获取转换器
+            Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
 //            判断有没有Inject注解
             if (field.isAnnotationPresent(Inject.class)) {
                 String beanNameOrValue = field.getAnnotation(Inject.class).value();
-//                获取转换器
-                Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
 //                注入基本类型和String
                 if (null != conv) {
                     field.setAccessible(true);
@@ -396,8 +410,6 @@ public class DApp {
             else if (params.containsKey(field.getName())) {
 //                获取请求参数的值
                 String value = (String) params.get(field.getName());
-//                获取转换器
-                Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
 //                尝试注入基本类型
                 if (null != conv) {
                     field.setAccessible(true);
@@ -424,14 +436,13 @@ public class DApp {
 
     //    打印初始化信息
     private void printInitMessage(int port, long startTime) {
-        String banner = "    .___                      ___.    \n" +
-                "  __| _/____    __  _  __ ____\\_ |__  \n" +
-                " / __ |\\__  \\   \\ \\/ \\/ // __ \\| __ \\ \n" +
-                "/ /_/ | / __ \\_  \\     /\\  ___/| \\_\\ \\\n" +
-                "\\____ |(____  /   \\/\\_/  \\___  >___  /\n" +
-                "     \\/     \\/               \\/    \\/ \n";
+        String[] banner = new String[]{
+                "    .___                      ___.    ", "  __| _/____    __  _  __ ____\\_ |__  ",
+                " / __ |\\__  \\   \\ \\/ \\/ // __ \\| __ \\ ", "/ /_/ | / __ \\_  \\     /\\  ___/| \\_\\ \\",
+                "\\____ |(____  /   \\/\\_/  \\___  >___  /", "     \\/     \\/               \\/    \\/"
+        };
         // 打印banner图
-        System.out.println(banner);
+        for (String s : banner) System.out.println(s);
         System.out.println("NIO服务器启动成功:");
         System.out.println("\t> 本地访问: http://localhost:" + port);
         try {
@@ -465,5 +476,30 @@ public class DApp {
             return (T) getBean(beanName);
         }
         return null;
+    }
+
+    /**
+     * 获取配置文件的信息
+     *
+     * @param propName 对应的属性名
+     * @return 对应的属性值
+     */
+    public String getCfgInfo(String propName) {
+//      获取配置文件,不为空的时候解析配置文件
+        final File configFile = Util.getResourceFile("app.properties");
+        try {
+            if (configFile != null) {
+//                不重复创建Properties
+                if (null == properties) {
+                    properties = new Properties();
+                    properties.load(new FileInputStream(configFile));
+                }
+//                返回配置文件中对应的值
+                return properties.getProperty(propName);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

@@ -560,4 +560,20 @@ public class Util {
         }
         return json.toString();
     }
+
+    /**
+     * 查找对应字符在字符串中出现的次数
+     *
+     * @param str 要查找的字符串内容
+     * @param c   要查找的char字符
+     * @return 对应字符在字符串中出现的次数
+     */
+    public static int getChatInStringNum(String str, char c) {
+        int num = 0;
+        for (int i = 0; i < str.length(); i++) {
+            final char c1 = str.charAt(i);
+            if (c1 == c) num += 1;
+        }
+        return num;
+    }
 }
