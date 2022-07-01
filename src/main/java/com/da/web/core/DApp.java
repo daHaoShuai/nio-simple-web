@@ -1,11 +1,10 @@
-package com.da.web;
+package com.da.web.core;
 
-import com.da.web.core.Context;
 import com.da.web.function.Handler;
 import com.da.web.annotations.Component;
 import com.da.web.annotations.Inject;
 import com.da.web.annotations.Path;
-import com.da.web.util.Util;
+import com.da.web.util.Utils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +13,7 @@ import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -24,7 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /**
  * Author Da
@@ -73,17 +76,17 @@ public class DApp {
     private void getAndParseConfig() {
 //        解析端口号
         final String port = getCfgInfo("port");
-        if (Util.isNotBlank(port)) PORT = Integer.parseInt(port);
+        if (Utils.isNotBlank(port)) PORT = Integer.parseInt(port);
 //        解析静态资源目录
         final String staticPath = getCfgInfo("static");
-        if (Util.isNotBlank(staticPath)) staticDirName = staticPath;
+        if (Utils.isNotBlank(staticPath)) staticDirName = staticPath;
     }
 
     //        扫描静态资源目录添加静态资源map中去
     private void scanStaticFile() {
-        File rootFile = Util.getResourceFile(this.staticDirName);
+        File rootFile = Utils.getResourceFile(this.staticDirName);
         if (rootFile != null) {
-            List<File> files = Util.scanFileToList(rootFile);
+            List<File> files = Utils.scanFileToList(rootFile);
 //        处理扫描出来的文件添加对应的路由到路由表中
             files.forEach(this::createRouteToStaticFile);
         }
@@ -122,7 +125,7 @@ public class DApp {
 //            以/开头的
             if (!k.startsWith("/")) {
 //                并且没有实现Handler接口的就是Component注解标记的类
-                if (!Util.isInterface(v.getClass(), Handler.class)) {
+                if (!Utils.isInterface(v.getClass(), Handler.class)) {
                     Class<?> clz = v.getClass();
                     for (Field field : clz.getDeclaredFields()) {
                         if (field.isAnnotationPresent(Inject.class)) {
@@ -142,7 +145,7 @@ public class DApp {
 //        当前属性的类型
         String fieldType = field.getType().getName();
 //        获取基本类型的转换器
-        Function<String, Object> conv = Util.getTypeConv(fieldType);
+        Function<String, Object> conv = Utils.getTypeConv(fieldType);
 //        不为空的时候就是基本数据类型和String
         if (null != conv) {
             field.setAccessible(true);
@@ -174,9 +177,9 @@ public class DApp {
     private void initScan(Class<?> clz) {
 //        配置类的包名
         String packageName = clz.getPackage().getName();
-        String rootPathName = Util.replace(packageName, "\\.", "/");
-        File rootPath = Util.getResourceFile(rootPathName);
-        List<File> files = Util.scanFileToList(rootPath);
+        String rootPathName = Utils.replace(packageName, "\\.", "/");
+        File rootPath = Utils.getResourceFile(rootPathName);
+        List<File> files = Utils.scanFileToList(rootPath);
         files.forEach(file -> handlerScanFile(packageName, file));
     }
 
@@ -186,7 +189,7 @@ public class DApp {
         String fileAbsolutePath = file.getAbsolutePath();
 //        处理所有以.class结尾的文件
         if (fileAbsolutePath.endsWith(".class")) {
-            String className = Util.replace(fileAbsolutePath, "\\\\", "\\.");
+            String className = Utils.replace(fileAbsolutePath, "\\\\", "\\.");
             className = className.substring(className.indexOf(packageName));
             className = className.substring(0, className.lastIndexOf("."));
             handlerClassName(className);
@@ -195,19 +198,19 @@ public class DApp {
 
     //    处理符合的class,丢到bean池中去
     private void handlerClassName(String className) {
-        Class<?> clz = Util.loadClass(className);
+        Class<?> clz = Utils.loadClass(className);
         if (null != clz) {
             String beanName = "";
             Object bean = null;
-            if (Util.isAnnotation(clz, Component.class)) {
+            if (Utils.isAnnotation(clz, Component.class)) {
                 beanName = clz.getAnnotation(Component.class).value();
-                bean = Util.newInstance(clz);
-            } else if (Util.isAnnotation(clz, Path.class)) {
+                bean = Utils.newInstance(clz);
+            } else if (Utils.isAnnotation(clz, Path.class)) {
                 beanName = clz.getAnnotation(Path.class).value();
-                bean = Util.newInstance(clz);
+                bean = Utils.newInstance(clz);
             }
 //               符合的实例化丢到bean池中
-            if (Util.isNotBlank(beanName) && null != bean) {
+            if (Utils.isNotBlank(beanName) && null != bean) {
                 beans.put(beanName, bean);
             }
         }
@@ -266,8 +269,10 @@ public class DApp {
 
     //    初始化服务器
     private void initServer(int port) throws IOException {
+//        当前线程为Boss线程
+        Thread.currentThread().setName("Boss");
 //            打开选择器
-        Selector selector = Selector.open();
+        Selector boss = Selector.open();
 //            打开服务端通道
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
 //            绑定端口
@@ -275,54 +280,45 @@ public class DApp {
 //            设置为非阻塞
         serverSocketChannel.configureBlocking(false);
 //            注册到选择器,等待连接
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+        serverSocketChannel.register(boss, SelectionKey.OP_ACCEPT);
 //            打印初始化信息
         printInitMessage(port, startTime);
 //        启动循环监听
-        startServer(selector, serverSocketChannel);
+        startServer(boss, serverSocketChannel);
     }
 
     //    启动服务器
-    private void startServer(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
+    private void startServer(Selector boss, ServerSocketChannel serverSocketChannel) throws IOException {
+//        worker线程的数量(cpu的核心数)
+        final int workerNum = Runtime.getRuntime().availableProcessors();
+        final Worker[] workers = new Worker[workerNum];
+//        创建worker线程
+        IntStream.range(0, workerNum).forEach(i -> workers[i] = new Worker("worker-" + i));
+//        用于负载均衡的原子整数
+        AtomicInteger robin = new AtomicInteger(0);
 //        循环监听
         while (isStart) {
 //                有连接进来
-            if (selector.select() > 0) {
+            if (boss.select() > 0) {
 //                    关注事件的集合
-                Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                Set<SelectionKey> selectionKeys = boss.selectedKeys();
 //                    迭代器
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
                 while (iterator.hasNext()) {
-//                    处理集合中的SelectionKey
-                    handlerKey(selector, iterator, serverSocketChannel);
+                    final SelectionKey key = iterator.next();
+//                    boss线程只负责Accept事件
+                    if (key.isAcceptable()) {
+//                        拿到浏览器的连接
+                        final SocketChannel accept = serverSocketChannel.accept();
+//                        设置为非阻塞
+                        accept.configureBlocking(false);
+//                        负载均衡,轮询分配Worker
+                        workers[robin.getAndIncrement() % workers.length].register(accept);
+                    }
 //                    删除掉当前处理完成的key
                     iterator.remove();
                 }
             }
-        }
-    }
-
-    //    处理集合中的SelectionKey
-    private void handlerKey(Selector selector, Iterator<SelectionKey> iterator, ServerSocketChannel serverSocketChannel) throws IOException {
-//       获取SelectionKey
-        SelectionKey selectionKey = iterator.next();
-//       连接事件,需要把当前的key注册为读取事件(浏览器获取服务器的响应)
-        if (selectionKey.isAcceptable()) {
-//           获取连接通道
-            SocketChannel accept = serverSocketChannel.accept();
-//           设置为非阻塞
-            accept.configureBlocking(false);
-//           注册为读取事件
-            accept.register(selector, SelectionKey.OP_READ);
-        }
-//       读取事件,响应内容到浏览器
-        else if (selectionKey.isReadable()) {
-//            获取写内容的通道
-            SocketChannel channel = (SocketChannel) selectionKey.channel();
-//           创建当前通道的上下文对象,用于解析请求信息和响应内容到浏览器
-            Context context = new Context(channel);
-//           处理对应的路由请求
-            handlerRoutes(context);
         }
     }
 
@@ -376,7 +372,7 @@ public class DApp {
         Field[] fields = clz.getDeclaredFields();
         for (Field field : fields) {
 //            获取转换器
-            Function<String, Object> conv = Util.getTypeConv(field.getType().getName());
+            Function<String, Object> conv = Utils.getTypeConv(field.getType().getName());
 //            判断有没有Inject注解
             if (field.isAnnotationPresent(Inject.class)) {
                 String beanNameOrValue = field.getAnnotation(Inject.class).value();
@@ -486,7 +482,7 @@ public class DApp {
      */
     public String getCfgInfo(String propName) {
 //      获取配置文件,不为空的时候解析配置文件
-        final File configFile = Util.getResourceFile("app.properties");
+        final File configFile = Utils.getResourceFile("app.properties");
         try {
             if (configFile != null) {
 //                不重复创建Properties
@@ -501,5 +497,85 @@ public class DApp {
             e.printStackTrace();
         }
         return "";
+    }
+
+    //    工作线程,处理路由事件
+    class Worker implements Runnable {
+        //        选择器
+        private volatile Selector selector;
+        //        当前的工作线程的名字
+        private final String name;
+        //        当前线程是否启动
+        private volatile boolean started = false;
+        //        同步队列,用于Boss线程与Worker线程之间的通信
+        private ConcurrentLinkedQueue<Runnable> queue;
+
+        public Worker(String name) {
+            this.name = name;
+        }
+
+        //        注册读取事件
+        public void register(final SocketChannel socket) throws IOException {
+//            只创建一次当前的线程
+            if (!started) {
+                //        当前的工作线程
+                Thread thread = new Thread(this, name);
+                selector = Selector.open();
+                queue = new ConcurrentLinkedQueue<>();
+                this.started = true;
+                thread.start();
+            }
+            // 向同步队列中添加SocketChannel的读取注册事件
+            queue.add(() -> {
+                try {
+//                    把当前的选择器注册为读取事件
+                    socket.register(selector, SelectionKey.OP_READ);
+                } catch (ClosedChannelException e) {
+                    e.printStackTrace();
+                }
+            });
+            // 唤醒被阻塞的Selector select类似LockSupport中的park，wakeup的原理类似LockSupport中的unpark
+            selector.wakeup();
+        }
+
+        //        获取并且执行队列中的任务(注册读取事件)
+        private void getAndStartTask() {
+            final Runnable task = queue.poll();
+            if (task != null) {
+//                获得任务,执行注册操作
+                task.run();
+            }
+        }
+
+        @Override
+        public void run() {
+            while (this.started) {
+                try {
+//                    有连接
+                    selector.select();
+//                    通过同步队列获得任务并运行
+                    getAndStartTask();
+//                    拿到选择器集合
+                    final Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                    final Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                    while (iterator.hasNext()) {
+                        final SelectionKey key = iterator.next();
+//                        Worker只负责Read事件
+                        if (key.isReadable()) {
+//                            获取写内容的通道
+                            SocketChannel channel = (SocketChannel) key.channel();
+//                            创建当前通道的上下文对象,用于解析请求信息和响应内容到浏览器
+                            Context context = new Context(channel);
+//                            处理对应的路由请求
+                            handlerRoutes(context);
+                        }
+//                        删除掉处理过的
+                        iterator.remove();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.da.web.core;
 
-import com.da.web.util.Util;
+import com.da.web.util.Utils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -102,13 +102,13 @@ public class Context {
                 requestMsg.append(new String(buff));
                 buffer.flip();
             }
-            if (Util.isNotBlank(requestMsg.toString())) {
+            if (Utils.isNotBlank(requestMsg.toString())) {
 //            用换行隔开每一条数据
                 String[] messages = requestMsg.toString().split("\n");
-                if (Util.isArrayNotNull(messages)) {
+                if (Utils.isArrayNotNull(messages)) {
 //                解析第一行的信息 请求方法 请求路径 http协议版本
                     String[] info = messages[0].split(" ");
-                    if (Util.isArrayNotNull(info) && info.length == 3) {
+                    if (Utils.isArrayNotNull(info) && info.length == 3) {
 //                        请求的方式
                         this.method = info[0];
 //                        处理post请求的数据
@@ -126,7 +126,7 @@ public class Context {
                         String beforeParams = beforeUrl.substring(beforeUrl.indexOf("?") + 1);
                         if (beforeParams.contains("&")) {
                             String[] tempParams = beforeParams.split("&");
-                            if (Util.isArrayNotNull(tempParams)) {
+                            if (Utils.isArrayNotNull(tempParams)) {
                                 for (String param : tempParams) {
                                     handlerParamsToMap(param);
                                 }
@@ -150,7 +150,7 @@ public class Context {
 //        最后一行是json数据
         String jsonMsg = messages[messages.length - 1];
 //        解析json到Map中
-        Map<String, Object> map = Util.parseJsonToMap(jsonMsg);
+        Map<String, Object> map = Utils.parseJsonToMap(jsonMsg);
 //        把解析出来的数据填充到params中去
         this.params.putAll(map);
     }
@@ -160,7 +160,7 @@ public class Context {
     private void handlerParamsToMap(String Params) throws UnsupportedEncodingException {
         if (Params.contains("=")) {
             String[] resParams = Params.split("=");
-            if (Util.isArrayNotNull(resParams) && resParams.length == 2) {
+            if (Utils.isArrayNotNull(resParams) && resParams.length == 2) {
                 String decode = URLDecoder.decode(resParams[1], "utf-8");
                 this.params.put(resParams[0], decode);
             }
@@ -245,7 +245,7 @@ public class Context {
      * @param file html文件
      */
     public void sendHtmlFile(File file) {
-        String msg = Util.readHtmlFileToString(file);
+        String msg = Utils.readHtmlFileToString(file);
         sendHtml(msg);
     }
 
@@ -256,7 +256,7 @@ public class Context {
      * @param code 响应码
      */
     public void sendHtmlFile(File file, int code) {
-        String msg = Util.readHtmlFileToString(file);
+        String msg = Utils.readHtmlFileToString(file);
         sendHtml(msg, code);
     }
 
@@ -286,7 +286,7 @@ public class Context {
      */
     public void send(File file) {
 //        获取文件的类型
-        String fileType = Util.getFileType(file);
+        String fileType = Utils.getFileType(file);
         FileInputStream is = null;
         try {
             is = new FileInputStream(file);

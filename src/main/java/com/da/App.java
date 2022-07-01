@@ -1,6 +1,6 @@
 package com.da;
 
-import com.da.web.DApp;
+import com.da.web.core.DApp;
 
 /**
  * @Author Da
@@ -17,8 +17,10 @@ import com.da.web.DApp;
 public class App {
     public static void main(String[] args) {
         final DApp app = new DApp(App.class);
+        app.use("/aa", ctx -> {
+            System.out.println(Thread.currentThread().getName());
+            ctx.send("ok");
+        });
         app.listen();
-//        获取配置文件中的信息
-        System.out.println(app.getCfgInfo("port"));
     }
 }

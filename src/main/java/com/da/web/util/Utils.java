@@ -36,9 +36,9 @@ import java.util.stream.Collectors;
  * Time: 19:42
  * 工具类
  */
-public class Util {
+public class Utils {
     //    创建工具类的实例
-    private static final Util util = new Util();
+    private static final Utils UTILS = new Utils();
     //    保存类型转换工具的类
     private static final Map<String, Function<String, Object>> typeMap = new HashMap<>();
 
@@ -64,7 +64,7 @@ public class Util {
     }
 
     //    私有构造
-    private Util() {
+    private Utils() {
     }
 
     /**
@@ -72,8 +72,8 @@ public class Util {
      *
      * @return 工具类的实例
      */
-    public Util getInstance() {
-        return util;
+    public Utils getInstance() {
+        return UTILS;
     }
 
     /**
@@ -193,7 +193,7 @@ public class Util {
      * @return 资源目录下的文件
      */
     public static File getResourceFile(String fileName) {
-        URL url = util.getClass().getClassLoader().getResource(fileName);
+        URL url = UTILS.getClass().getClassLoader().getResource(fileName);
         if (null == url) return null;
         return new File(url.getFile());
     }
@@ -217,7 +217,7 @@ public class Util {
     public static Class<?> loadClass(String className) {
         Class<?> clz = null;
         try {
-            clz = util.getClass().getClassLoader().loadClass(className);
+            clz = UTILS.getClass().getClassLoader().loadClass(className);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -397,7 +397,7 @@ public class Util {
             }
         }
 //        处理嵌套的a:{b:{c:d}}
-        if (Util.isNotBlank(tempJson.toString())) {
+        if (Utils.isNotBlank(tempJson.toString())) {
             String jsonStr = tempJson.toString();
             System.out.println(jsonStr);
             jsonStr = jsonStr.substring(0, jsonStr.length() - 1);
@@ -415,7 +415,7 @@ public class Util {
     //    添加普通节点
     private static void addSimpleNode(String element, Node root) {
         String[] node = element.split(":");
-        if (Util.isArrayNotNull(node) && node.length == 2) {
+        if (Utils.isArrayNotNull(node) && node.length == 2) {
 //                    去掉"和{}
             String key = node[0].replaceAll("\"", "").replaceAll("\\{", "");
             String value = node[1].replaceAll("\"", "").replaceAll("}", "");
@@ -446,7 +446,7 @@ public class Util {
 //            如果是键值对形式的 k:v
             if (value.matches(kvReg)) {
                 String[] data = value.replaceAll("\"", "").split(":");
-                if (Util.isArrayNotNull(data) && data.length == 2) {
+                if (Utils.isArrayNotNull(data) && data.length == 2) {
                     Node node = new Node(data[0], data[1]);
                     root.children().add(node);
                 }
