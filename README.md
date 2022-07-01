@@ -29,12 +29,13 @@ public class IndexController implements Handler {
     }
 }
 ```
-使用配置文件配置端口和static目录
-resources/app.properties
+
+#### 使用配置文件配置端口和static目录 resources/app.properties
+
 ```properties
-#指定端口号
+#指定端口号(默认从8080开始找可以的端口)
 port=8083
-#指定static目录,用/分开文件夹,static目录下的index.html访问路径为/
+#指定static目录(默认为resources/static),用/分开文件夹,static目录下的index.html访问路径为/
 static=aaa/aaa
 ```
 
@@ -129,19 +130,19 @@ public class IndexController implements Handler {
 }
 ```
 
-**约定resources目录下的static目录为静态资源目录,默认index.html为/访问路径**
-
-###### 简单的json转map,因为正则匹配的不好所以会有问题,简单的{a:xx,b:xx}这种没有问题
+###### 获取传来的json字符串
 
 ```java
 public class App {
     public static void main(String[] args) {
-//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"}}";
-//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\"}}";
-//        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\"}}";
-        String json = "{\"name\":\"阿达\",\"age\":18,\"wife\":{\"name\":\"王冰冰\",\"hobby\":\"吃鱼\"},\"sex\":{\"name\":\"男\",\"other\":{\"name\":\"哈哈\"}}}";
-        Map<String, Object> map = Util.parseJsonToMap(json);
-        System.out.println(map);
+        final DApp app = new DApp(App.class);
+        app.use("/aa", ctx -> {
+//            post请求传来的json字符串,因为写不出方便的json解析,所以就直接存整个传来的json字符串
+            final Object o = ctx.getParams().get("request-json-data");
+            System.out.println(o);
+            ctx.send("ok");
+        });
+        app.listen();
     }
 }
 ```

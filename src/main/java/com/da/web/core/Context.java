@@ -53,7 +53,7 @@ public class Context {
     //    请求方法
     private String method;
     //    请求参数
-    private final Map<String, Object> params = new HashMap<String, Object>();
+    private final Map<String, Object> params = new HashMap<>();
     //    http协议版本,默认是 HTTP/1.1
     private String HTTP_VERSION = "HTTP/1.1";
     //    读写通道
@@ -149,12 +149,11 @@ public class Context {
         String[] messages = data.split("\n");
 //        最后一行是json数据
         String jsonMsg = messages[messages.length - 1];
-//        解析json到Map中
-        Map<String, Object> map = Utils.parseJsonToMap(jsonMsg);
-//        把解析出来的数据填充到params中去
-        this.params.putAll(map);
+        if (!"}]".equals(jsonMsg)) {
+//        把解析出来的数据填充到params中去(不解析,让用户自己解析)
+            this.params.put("request-json-data", jsonMsg);
+        }
     }
-
 
     //    因为中文会有编码的问题所以要处理一下
     private void handlerParamsToMap(String Params) throws UnsupportedEncodingException {
