@@ -373,4 +373,17 @@ public class Utils {
         }
         return num;
     }
+
+    /**
+     * @param className 要判断的类
+     * @return 类存不存在
+     */
+    public static boolean isReadExist(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 }

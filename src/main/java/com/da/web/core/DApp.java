@@ -9,7 +9,9 @@ import com.da.web.util.Utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -197,6 +199,7 @@ public class DApp {
     }
 
     //    处理符合的class,丢到bean池中去
+    @SuppressWarnings("unchecked")//忽略强转类型的警告
     private void handlerClassName(String className) {
         Class<?> clz = Utils.loadClass(className);
         if (null != clz) {
@@ -208,6 +211,28 @@ public class DApp {
             } else if (Utils.isAnnotation(clz, Path.class)) {
                 beanName = clz.getAnnotation(Path.class).value();
                 bean = Utils.newInstance(clz);
+//                判断有没有我的orm框架
+            } else if (Utils.isReadExist("com.da.orm.annotation.Mapper")) {
+                try {
+//                    加载orm框架的 @Mapper 注解
+                    final Class<Annotation> mapper = (Class<Annotation>) Class.forName("com.da.orm.annotation.Mapper");
+//                    判断当前类有没有 @Mapper 注解
+                    if (Utils.isAnnotation(clz, mapper)) {
+                        //                mapper工厂存在才创建代理对象
+                        if (Utils.isReadExist("com.da.orm.core.MapperProxyFactory")) {
+                            final Class<?> mapperProxyFactoryClz = Class.forName("com.da.orm.core.MapperProxyFactory");
+                            final Object instance = mapperProxyFactoryClz.getConstructor().newInstance();
+                            final Method getMapper = mapperProxyFactoryClz.getDeclaredMethod("getMapper", Class.class);
+                            getMapper.setAccessible(true);
+                            final Object invoke = getMapper.invoke(instance, clz);
+                            beanName = clz.getSimpleName();
+                            bean = invoke;
+                            getMapper.setAccessible(false);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 //               符合的实例化丢到bean池中
             if (Utils.isNotBlank(beanName) && null != bean) {
