@@ -1,6 +1,8 @@
 package com.da;
 
-import com.da.web.core.DApp;
+import com.da.web.util.Utils;
+
+import java.util.Arrays;
 
 /**
  * @Author Da
@@ -16,13 +18,15 @@ import com.da.web.core.DApp;
  */
 public class App {
     public static void main(String[] args) {
-        final DApp app = new DApp(App.class);
-        app.use("/aa", ctx -> {
-//            post请求传来的json字符串,因为写不出方便的json解析,所以就直接存整个传来的json字符串
-            final Object o = ctx.getParams().get("request-json-data");
-            System.out.println(o);
-            ctx.send("ok");
-        });
-        app.listen();
+//        把实体类列表转成json数组形式字符串
+        System.out.println(Utils.parseListToJsonString(Arrays.asList(new User("a"), new User("b"), new User("c"))));
+    }
+}
+
+class User {
+    public String name;
+
+    public User(String name) {
+        this.name = name;
     }
 }

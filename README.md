@@ -146,3 +146,21 @@ public class App {
     }
 }
 ```
+##### 把实体类列表转成json数组形式字符串
+```java
+public class App {
+    public static void main(String[] args) {
+//        把实体类列表转成json数组形式字符串
+        System.out.println(Utils.parseListToJsonString(Arrays.asList(new User("a"), new User("b"), new User("c"))));
+// {"User":[{"name":"a"},{"name":"b"},{"name":"c"}]}
+    }
+}
+
+class User {
+    public String name;
+
+    public User(String name) {
+        this.name = name;
+    }
+}
+```

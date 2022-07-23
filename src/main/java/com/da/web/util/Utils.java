@@ -3,6 +3,7 @@ package com.da.web.util;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -384,6 +385,43 @@ public class Utils {
             return true;
         } catch (ClassNotFoundException e) {
             return false;
+        }
+    }
+
+    /**
+     * 把实体类列表转成json数组字符串
+     *
+     * @param list 实体类列表
+     * @return json数组类型字符串
+     */
+    public static <T> String parseListToJsonString(List<T> list) {
+        final StringBuilder builder = new StringBuilder();
+        try {
+            if (null != list && list.size() > 0) {
+                final T t = list.get(0);
+                final String listName = t.getClass().getSimpleName();
+                builder.append("{\"").append(listName).append("\":[");
+                final Field[] fields = t.getClass().getDeclaredFields();
+                for (T i : list) {
+                    builder.append("{");
+                    for (Field field : fields) {
+                        field.setAccessible(true);
+                        builder.append("\"")
+                                .append(field.getName())
+                                .append("\":\"")
+                                .append(field.get(i))
+                                .append("\",");
+                    }
+                    builder.deleteCharAt(builder.length() - 1);
+                    builder.append("},");
+                }
+                builder.deleteCharAt(builder.length() - 1);
+                builder.append("]}");
+            }
+            return builder.toString();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return "";
         }
     }
 }
