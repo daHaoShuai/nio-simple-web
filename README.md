@@ -3,7 +3,7 @@
 ## 使用maven安装依赖
 
 ```xml
-<!--添加 simple-orm 仓库地址-->
+<!--添加 nio-simple-web 仓库地址-->
 <repositories>
     <repository>
         <id>nio-simple-web</id>
