@@ -100,7 +100,6 @@ public class Context {
                 byte[] buff = new byte[buffer.limit()];
                 buffer.get(buff);
                 requestMsg.append(new String(buff));
-                buffer.flip();
             }
             if (Utils.isNotBlank(requestMsg.toString())) {
 //            用换行隔开每一条数据
