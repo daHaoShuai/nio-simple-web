@@ -1,5 +1,28 @@
 # 用nio做个简单的web服务器
 
+## 使用maven安装依赖
+
+```xml
+<!--添加 simple-orm 仓库地址-->
+<repositories>
+    <repository>
+        <id>nio-simple-web</id>
+        <url>https://raw.githubusercontent.com/daHaoShuai/nio-simple-web/main/repo</url>
+    </repository>
+</repositories>
+```
+
+```xml
+<!--添加依赖-->
+<dependencies>
+    <dependency>
+        <groupId>com.da</groupId>
+        <artifactId>nio-simple-web</artifactId>
+        <version>1.0.1</version>
+    </dependency>
+</dependencies>
+```
+
 ```java
 public class App {
     public static void main(String[] args) {
@@ -146,7 +169,9 @@ public class App {
     }
 }
 ```
+
 ##### 把实体类列表转成json数组形式字符串
+
 ```java
 public class App {
     public static void main(String[] args) {
