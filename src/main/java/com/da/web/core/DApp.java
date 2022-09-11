@@ -191,7 +191,14 @@ public class DApp {
         String fileAbsolutePath = file.getAbsolutePath();
 //        处理所有以.class结尾的文件
         if (fileAbsolutePath.endsWith(".class")) {
-            String className = Utils.replace(fileAbsolutePath, "\\\\", "\\.");
+//            获取当前设备是Windows还是其他,Windows的路径是\\
+            String OS_NAME = System.getProperty("os.name");
+            String className;
+            if (OS_NAME != null && OS_NAME.startsWith("Windows")) {
+                className = Utils.replace(fileAbsolutePath, "\\\\", "\\.");
+            } else {
+                className = Utils.replace(fileAbsolutePath, "/", "\\.");
+            }
             className = className.substring(className.indexOf(packageName));
             className = className.substring(0, className.lastIndexOf("."));
             handlerClassName(className);
