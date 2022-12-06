@@ -1,5 +1,7 @@
 package com.da.web.core;
 
+import com.da.web.enums.ContentType;
+import com.da.web.enums.States;
 import com.da.web.util.Utils;
 
 import java.io.File;
@@ -27,27 +29,6 @@ import java.util.Map;
  * Time: 19:28
  */
 public class Context {
-    //    成功的状态码
-    public final static int OK = 200;
-    //    失败的状态码
-    public final static int ERR = 500;
-    //    找不到的状态码
-    public final static int NOTFOUND = 404;
-    //    content-type的html类型
-    public final static String CONTENT_TYPE_HTML = "Content-Type: text/html;charset=utf-8";
-    //    content-type的文本类型
-    public final static String CONTENT_TYPE_TEXT = "Content-Type: text/plain;charset=utf-8";
-    //    content-type的xml类型
-    public final static String CONTENT_TYPE_XML = "Content-Type: text/xml;charset=utf-8";
-    //    content-type的gif图片类型
-    public final static String CONTENT_TYPE_GIF = "Content-Type: image/gif;charset=utf-8";
-    //    content-type的jpg图片类型
-    public final static String CONTENT_TYPE_JPG = "Content-Type: image/jpeg;charset=utf-8";
-    //    content-type的png图片类型
-    public final static String CONTENT_TYPE_PNG = "Content-Type: image/png;charset=utf-8";
-    //    content-type的json类型
-    public final static String CONTENT_TYPE_JSON = "Content-Type: application/json;charset=utf-8";
-
     //    请求路径
     private String url;
     //    请求方法
@@ -187,7 +168,7 @@ public class Context {
     public void errPrint(Exception e) {
         e.printStackTrace();
         //            拼接响应字符串
-        String result = this.HTTP_VERSION + " " + ERR + "\n" + CONTENT_TYPE_HTML + "\n\n" +
+        String result = this.HTTP_VERSION + " " + States.ERROR.code + "\n" + ContentType.CONTENT_TYPE_HTML.type + "\n\n" +
                 "<head><title>500</title></head><body>" +
                 "<h1 style='text-align: center;color: red;'>服务器出错了</h1><hr/><p>错误信息: " + e.getMessage() + "</p>" +
                 "</body></html>";
@@ -205,7 +186,7 @@ public class Context {
      * @param msg 文本信息
      */
     public void send(String msg) {
-        send(CONTENT_TYPE_TEXT, OK, msg);
+        send(ContentType.CONTENT_TYPE_TEXT.type, States.OK.code, msg);
     }
 
     /**
@@ -215,7 +196,7 @@ public class Context {
      * @param code 响应码
      */
     public void send(String msg, int code) {
-        send(CONTENT_TYPE_TEXT, code, msg);
+        send(ContentType.CONTENT_TYPE_TEXT.type, code, msg);
     }
 
     /**
@@ -224,7 +205,7 @@ public class Context {
      * @param msg 网页信息
      */
     public void sendHtml(String msg) {
-        send(CONTENT_TYPE_HTML, OK, msg);
+        send(ContentType.CONTENT_TYPE_HTML.type, States.OK.code, msg);
     }
 
     /**
@@ -234,7 +215,7 @@ public class Context {
      * @param code 响应码
      */
     public void sendHtml(String msg, int code) {
-        send(CONTENT_TYPE_HTML, code, msg);
+        send(ContentType.CONTENT_TYPE_HTML.type, code, msg);
     }
 
     /**
@@ -264,7 +245,7 @@ public class Context {
      * @param msg json信息
      */
     public void sendJson(String msg) {
-        send(CONTENT_TYPE_JSON, OK, msg);
+        send(ContentType.CONTENT_TYPE_JSON.type, States.OK.code, msg);
     }
 
     /**
@@ -274,7 +255,7 @@ public class Context {
      * @param code 响应码
      */
     public void sendJson(String msg, int code) {
-        send(CONTENT_TYPE_JSON, code, msg);
+        send(ContentType.CONTENT_TYPE_JSON.type, code, msg);
     }
 
     /**
@@ -289,7 +270,7 @@ public class Context {
         try {
             is = new FileInputStream(file);
 //            响应头信息
-            String dataStr = this.HTTP_VERSION + " " + OK + "\nContent-Type: " + fileType + ";charset=utf-8\n\n";
+            String dataStr = this.HTTP_VERSION + " " + States.OK.code + "\nContent-Type: " + fileType + ";charset=utf-8\n\n";
 //            写入响应头信息
             this.channel.write(ByteBuffer.wrap(dataStr.getBytes(StandardCharsets.UTF_8)));
 //            获取文件读取通道

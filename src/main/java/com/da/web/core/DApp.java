@@ -1,13 +1,13 @@
 package com.da.web.core;
 
-import com.da.web.function.Handler;
 import com.da.web.annotations.Component;
 import com.da.web.annotations.Inject;
 import com.da.web.annotations.Path;
+import com.da.web.enums.States;
+import com.da.web.function.Handler;
 import com.da.web.util.Utils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -15,17 +15,9 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.nio.channels.*;
+import java.nio.file.Files;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -375,7 +367,7 @@ public class DApp {
         }
 //        找不到就是404
         else {
-            context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", Context.NOTFOUND);
+            context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", States.NOT_FOUND.code);
         }
     }
 
@@ -520,7 +512,7 @@ public class DApp {
 //                不重复创建Properties
                 if (null == properties) {
                     properties = new Properties();
-                    properties.load(new FileInputStream(configFile));
+                    properties.load(Files.newInputStream(configFile.toPath()));
                 }
 //                返回配置文件中对应的值
                 return properties.getProperty(propName);

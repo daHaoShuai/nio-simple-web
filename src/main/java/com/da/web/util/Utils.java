@@ -10,12 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Author Da
@@ -199,7 +197,7 @@ public class Utils {
      * @return 资源目录下的文件路径
      */
     public static String getResourcePath(String fileName) {
-        return getResourceFile(fileName).getPath();
+        return Objects.requireNonNull(getResourceFile(fileName)).getPath();
     }
 
     /**
@@ -256,9 +254,8 @@ public class Utils {
         List<File> list = null;
         if (isNotNullFile(root)) {
             Path rootPath = Paths.get(root.getPath());
-            try {
-                list = Files.walk(rootPath)
-                        .map(Path::toFile)
+            try(Stream<Path> stream = Files.walk(rootPath)) {
+                        list = stream.map(Path::toFile)
                         .filter(file -> !file.isDirectory())
                         .collect(Collectors.toList());
             } catch (IOException e) {
