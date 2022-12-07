@@ -189,3 +189,113 @@ class User {
     }
 }
 ```
+
+## 简单的websocket服务器功能(非常弱,功能不完善)
+
+创建监听器
+
+```java
+import com.da.web.annotations.Component;
+import com.da.web.core.Context;
+import com.da.web.function.WsListener;
+import com.da.web.util.Utils;
+
+// 注册到容器,并且实现WsListener接口
+@Component("ws")
+public class WsImpl implements WsListener {
+
+    @Override
+    public void onMessage(Context ctx, String message) throws Exception {
+        System.out.println("收到客户端发来的消息: " + message);
+        Utils.sendWsMessage("服务器收到了来自客户端的消息...", ctx.getChannel());
+    }
+
+    @Override
+    public void onError(Context ctx, Exception e) {
+        System.out.println(e.getMessage());
+    }
+
+    @Override
+    public void onClose(Context ctx) throws Exception {
+        System.out.println("关闭");
+    }
+}
+```
+
+注册监听器
+
+```java
+import com.da.web.annotations.Inject;
+import com.da.web.annotations.Path;
+import com.da.web.core.Context;
+import com.da.web.function.Handler;
+import com.da.web.function.WsListener;
+import com.da.web.util.Utils;
+
+@Path("/ws")
+public class IndexController implements Handler {
+
+    @Inject("ws")
+    WsListener wsListener;
+
+    @Override
+    public void callback(Context ctx) throws Exception {
+//        注册监听器
+        ctx.setWsListener(wsListener);
+//        发送消息到客户端
+        Utils.sendWsMessage("来自服务端的消息", ctx.getChannel());
+    }
+
+}
+```
+
+网页测试,在控制台中查看结果
+
+```html
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>测试websocket服务器</title>
+</head>
+
+<body>
+<h1>测试websocket服务器</h1>
+<button onclick="send()">发送</button>
+<script>
+
+        // 开启websocket服务
+        const socket = new WebSocket('ws://localhost:8080/ws');
+
+        // 监听连接
+        socket.onopen = () => {
+            console.log("开启websocket")
+        }
+
+        // 监听消息
+        socket.onmessage = ({ data }) => {
+            console.log(data)
+        }
+
+        // 监听关闭
+        socket.onclose = () => {
+            console.log('websocket关闭')
+        }
+
+        // 监听错误
+        socket.onerror = () => {
+            console.log('连接错误')
+        }
+
+        // 发送消息
+        const send = () => {
+            socket.send("你好我是浏览器")
+        }
+
+
+</script>
+</body>
+
+</html>
+```

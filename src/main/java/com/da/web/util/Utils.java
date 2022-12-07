@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -170,7 +174,8 @@ public class Utils {
         int idx = 0;
         while (i > 0) {
             int tempIdx = str.indexOf(findStr);
-            if (tempIdx == -1) throw new RuntimeException("在" + str + "中找不到字符" + findStr + "第" + i + "处的坐标");
+            if (tempIdx == -1)
+                throw new RuntimeException("在" + str + "中找不到字符" + findStr + "第" + i + "处的坐标");
             str = str.substring(0, tempIdx) + " " + str.substring(tempIdx + 1);
             idx += tempIdx;
             i--;
@@ -254,8 +259,8 @@ public class Utils {
         List<File> list = null;
         if (isNotNullFile(root)) {
             Path rootPath = Paths.get(root.getPath());
-            try(Stream<Path> stream = Files.walk(rootPath)) {
-                        list = stream.map(Path::toFile)
+            try (Stream<Path> stream = Files.walk(rootPath)) {
+                list = stream.map(Path::toFile)
                         .filter(file -> !file.isDirectory())
                         .collect(Collectors.toList());
             } catch (IOException e) {
@@ -421,4 +426,43 @@ public class Utils {
             return "";
         }
     }
+
+    /**
+     * 响应websocket请求
+     *
+     * @param receiveKey 处理ws连接的 Sec-WebSocket-Key
+     * @return 处理后的响应
+     */
+    public static String getHandShakeResponse(String receiveKey) {
+        String keyOrigin = receiveKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        MessageDigest sha1;
+        String accept = null;
+        try {
+            sha1 = MessageDigest.getInstance("sha1");
+            sha1.update(keyOrigin.getBytes());
+            accept = new String(Base64.getEncoder().encode(sha1.digest()));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        String echoHeader = "";
+        echoHeader += "HTTP/1.1 101 Switching Protocols\r\n";
+        echoHeader += "Upgrade: websocket\r\n";
+        echoHeader += "Connection: Upgrade\r\n";
+        echoHeader += "Sec-WebSocket-Accept: " + accept + "\r\n";
+        echoHeader += "\r\n";
+        return echoHeader;
+    }
+
+    /**
+     * 发送消息给websocket客户端
+     */
+    public static void sendWsMessage(String msg, SocketChannel channel) throws IOException {
+        byte[] boardCastData = new byte[2 + msg.getBytes().length];
+        boardCastData[0] = (byte) 0x81;
+        boardCastData[1] = (byte) msg.getBytes().length;
+        System.arraycopy(msg.getBytes(), 0, boardCastData, 2, msg.getBytes().length);
+        channel.write(ByteBuffer.wrap(boardCastData));
+    }
+
+
 }

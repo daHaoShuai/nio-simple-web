@@ -10,8 +10,15 @@ public enum States {
     ERROR(500),
     //    找不到的状态码
     NOT_FOUND(404);
-    public final int code;
+    private final int code;
+
+    @Override
+    public String toString() {
+        return String.valueOf(code);
+    }
+
     States(int code) {
         this.code = code;
     }
+
 }

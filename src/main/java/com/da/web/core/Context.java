@@ -2,6 +2,7 @@ package com.da.web.core;
 
 import com.da.web.enums.ContentType;
 import com.da.web.enums.States;
+import com.da.web.function.WsListener;
 import com.da.web.util.Utils;
 
 import java.io.File;
@@ -39,6 +40,17 @@ public class Context {
     private String HTTP_VERSION = "HTTP/1.1";
     //    读写通道
     private final SocketChannel channel;
+    //    websocket监听器
+    private WsListener wsListener;
+
+    public void setWsListener(WsListener wsListener) {
+        this.wsListener = wsListener;
+    }
+
+    //    获取监听器
+    public WsListener getWsListener() {
+        return wsListener;
+    }
 
     public String getUrl() {
         return url;
@@ -85,6 +97,17 @@ public class Context {
             if (Utils.isNotBlank(requestMsg.toString())) {
 //            用换行隔开每一条数据
                 String[] messages = requestMsg.toString().split("\n");
+//                判断是不是websocket请求
+                if (messages.length > 3 && messages[messages.length - 3].contains("Sec-WebSocket-Key")) {
+//                   尝试连接
+                    String secWebSocketKey = messages[messages.length - 3];
+                    secWebSocketKey = secWebSocketKey.substring(secWebSocketKey.indexOf(":") + 1).trim();
+                    String response = Utils.getHandShakeResponse(secWebSocketKey);
+//                          响应websocket请求
+                    channel.write(ByteBuffer.wrap(response.getBytes()));
+//                          保存当前的上下文对象
+                    DApp.wsContexts.put(channel, this);
+                }
                 if (Utils.isArrayNotNull(messages)) {
 //                解析第一行的信息 请求方法 请求路径 http协议版本
                     String[] info = messages[0].split(" ");
@@ -168,7 +191,7 @@ public class Context {
     public void errPrint(Exception e) {
         e.printStackTrace();
         //            拼接响应字符串
-        String result = this.HTTP_VERSION + " " + States.ERROR.code + "\n" + ContentType.CONTENT_TYPE_HTML.type + "\n\n" +
+        String result = this.HTTP_VERSION + " " + States.ERROR + "\n" + ContentType.CONTENT_TYPE_HTML + "\n\n" +
                 "<head><title>500</title></head><body>" +
                 "<h1 style='text-align: center;color: red;'>服务器出错了</h1><hr/><p>错误信息: " + e.getMessage() + "</p>" +
                 "</body></html>";
@@ -180,13 +203,18 @@ public class Context {
         }
     }
 
+    //    发送错误信息到浏览器
+    public void errPrint(String msg) {
+        errPrint(new Exception(msg));
+    }
+
     /**
      * 发送文本信息
      *
      * @param msg 文本信息
      */
     public void send(String msg) {
-        send(ContentType.CONTENT_TYPE_TEXT.type, States.OK.code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_TEXT), States.OK.ordinal(), msg);
     }
 
     /**
@@ -196,7 +224,7 @@ public class Context {
      * @param code 响应码
      */
     public void send(String msg, int code) {
-        send(ContentType.CONTENT_TYPE_TEXT.type, code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_TEXT), code, msg);
     }
 
     /**
@@ -205,7 +233,7 @@ public class Context {
      * @param msg 网页信息
      */
     public void sendHtml(String msg) {
-        send(ContentType.CONTENT_TYPE_HTML.type, States.OK.code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_HTML), States.OK.ordinal(), msg);
     }
 
     /**
@@ -215,7 +243,7 @@ public class Context {
      * @param code 响应码
      */
     public void sendHtml(String msg, int code) {
-        send(ContentType.CONTENT_TYPE_HTML.type, code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_HTML), code, msg);
     }
 
     /**
@@ -245,7 +273,7 @@ public class Context {
      * @param msg json信息
      */
     public void sendJson(String msg) {
-        send(ContentType.CONTENT_TYPE_JSON.type, States.OK.code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_JSON), States.OK.ordinal(), msg);
     }
 
     /**
@@ -255,7 +283,7 @@ public class Context {
      * @param code 响应码
      */
     public void sendJson(String msg, int code) {
-        send(ContentType.CONTENT_TYPE_JSON.type, code, msg);
+        send(String.valueOf(ContentType.CONTENT_TYPE_JSON), code, msg);
     }
 
     /**
@@ -270,7 +298,7 @@ public class Context {
         try {
             is = new FileInputStream(file);
 //            响应头信息
-            String dataStr = this.HTTP_VERSION + " " + States.OK.code + "\nContent-Type: " + fileType + ";charset=utf-8\n\n";
+            String dataStr = this.HTTP_VERSION + " " + States.OK + "\nContent-Type: " + fileType + ";charset=utf-8\n\n";
 //            写入响应头信息
             this.channel.write(ByteBuffer.wrap(dataStr.getBytes(StandardCharsets.UTF_8)));
 //            获取文件读取通道

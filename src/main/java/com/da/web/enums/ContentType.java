@@ -18,8 +18,12 @@ public enum ContentType {
     CONTENT_TYPE_PNG("Content-Type: image/png;charset=utf-8"),
     //    content-type的json类型
     CONTENT_TYPE_JSON("Content-Type: application/json;charset=utf-8");
-    public final String type;
+    private final String type;
     ContentType(String type) {
         this.type = type;
+    }
+    @Override
+    public String toString() {
+        return type;
     }
 }

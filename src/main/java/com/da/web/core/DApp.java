@@ -5,6 +5,7 @@ import com.da.web.annotations.Inject;
 import com.da.web.annotations.Path;
 import com.da.web.enums.States;
 import com.da.web.function.Handler;
+import com.da.web.function.WsListener;
 import com.da.web.util.Utils;
 
 import java.io.File;
@@ -15,9 +16,11 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -38,13 +41,13 @@ import java.util.stream.IntStream;
  */
 public class DApp {
     //    路由表
-    private final Map<String, Handler> routes = new HashMap<>();
+    private final Map<String, Handler> routes = new ConcurrentHashMap<>();
     //    保存扫描出来的bean
-    private final Map<String, Object> beans = new HashMap<>();
+    private final Map<String, Object> beans = new ConcurrentHashMap<>();
     //    静态目录名字
     private String staticDirName = "static";
     //    静态path对应的资源文件
-    private final Map<String, File> staticFiles = new HashMap<>();
+    private final Map<String, File> staticFiles = new ConcurrentHashMap<>();
     //    服务初始化时间
     private final long startTime;
     //    是否开启服务器
@@ -53,6 +56,8 @@ public class DApp {
     private int PORT = 8080;
     //    配置文件解析
     private Properties properties = null;
+    //    保存websocket的上下文
+    public final static Map<SocketChannel, Context> wsContexts = new ConcurrentHashMap<>();
 
     /**
      * 空参构造不会扫描注入bean
@@ -347,7 +352,7 @@ public class DApp {
     }
 
     //    处理对应的路由请求
-    private void handlerRoutes(Context context) {
+    private void handlerRoutes(Context context) throws Exception {
         //            获取请求的url
         String url = context.getUrl();
 //        判断路由表中有没有对应的路由
@@ -367,7 +372,7 @@ public class DApp {
         }
 //        找不到就是404
         else {
-            context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", States.NOT_FOUND.code);
+            context.sendHtml("<h1 style='color: red;text-align: center;'>404 not found</h1><hr/>", States.NOT_FOUND.ordinal());
         }
     }
 
@@ -379,7 +384,7 @@ public class DApp {
     }
 
     //    处理bean池中的路由
-    private void handBeanRoute(String url, Context context) {
+    private void handBeanRoute(String url, Context context) throws Exception {
         //                获取对应的bean,注入属性
         Object bean = beans.get(url);
 //                动态注入属性
@@ -588,15 +593,44 @@ public class DApp {
                         if (key.isReadable()) {
 //                            获取写内容的通道
                             SocketChannel channel = (SocketChannel) key.channel();
+//                            建立了websocket长连接就监听发来的消息
+                            if (wsContexts.containsKey(channel)) {
+                                Context context = wsContexts.get(channel);
+                                WsListener wsListener = context.getWsListener();
+                                if (null != wsListener) {
+                                    try {
+                                        byte[] bytesData = new byte[1024 * 8];
+                                        channel.read(ByteBuffer.wrap(bytesData));
+//                                        opcode为8，对方主动断开连接
+                                        if ((bytesData[0] & 0xf) == 8) {
+//                                        监听连接关闭
+                                            wsListener.onClose(context);
+                                        }
+//                                byte payloadLength = (byte) (bytesData[1] & 0x7f);
+                                        byte[] mask = Arrays.copyOfRange(bytesData, 2, 6);
+                                        byte[] payloadData = Arrays.copyOfRange(bytesData, 6, bytesData.length);
+                                        for (int i = 0; i < payloadData.length; i++) {
+                                            payloadData[i] = (byte) (payloadData[i] ^ mask[i % 4]);
+                                        }
+//                                    监听消息
+                                        wsListener.onMessage(context, new String(payloadData));
+                                    } catch (Exception e) {
+//                                        监听处理错误
+                                        wsListener.onError(context, e);
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            } else {
 //                            创建当前通道的上下文对象,用于解析请求信息和响应内容到浏览器
-                            Context context = new Context(channel);
+                                Context context = new Context(channel);
 //                            处理对应的路由请求
-                            handlerRoutes(context);
+                                handlerRoutes(context);
+                            }
                         }
 //                        删除掉处理过的
                         iterator.remove();
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

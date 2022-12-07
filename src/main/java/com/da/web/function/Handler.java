@@ -17,5 +17,9 @@ import com.da.web.core.Context;
  */
 @FunctionalInterface
 public interface Handler {
-    void callback(Context ctx);
+    /**
+     * @param ctx 上下文对象
+     * @throws Exception 异常
+     */
+    void callback(Context ctx) throws Exception;
 }
