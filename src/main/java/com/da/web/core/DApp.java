@@ -604,20 +604,23 @@ public class DApp {
 //                                        opcode为8，对方主动断开连接
                                         if ((bytesData[0] & 0xf) == 8) {
 //                                        监听连接关闭
-                                            wsListener.onClose(context);
+                                            wsListener.onError(context, null);
                                         }
-//                                byte payloadLength = (byte) (bytesData[1] & 0x7f);
+                                        byte payloadLength = (byte) (bytesData[1] & 0x7f);
                                         byte[] mask = Arrays.copyOfRange(bytesData, 2, 6);
-                                        byte[] payloadData = Arrays.copyOfRange(bytesData, 6, bytesData.length);
+                                        byte[] payloadData = Arrays.copyOfRange(bytesData, 6, payloadLength);
                                         for (int i = 0; i < payloadData.length; i++) {
                                             payloadData[i] = (byte) (payloadData[i] ^ mask[i % 4]);
                                         }
-//                                    监听消息
+//                                      监听消息
                                         wsListener.onMessage(context, new String(payloadData));
                                     } catch (Exception e) {
 //                                        监听处理错误
                                         wsListener.onError(context, e);
-                                        throw new RuntimeException(e);
+//                                        关闭通道
+                                        channel.close();
+//                                        移除这个通道
+                                        DApp.wsContexts.remove(channel);
                                     }
                                 }
                             } else {
